@@ -1,0 +1,25 @@
+{
+  "name": "ai-complaint-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "kill-port 5000 --silent & node server.js",
+    "dev": "kill-port 5000 --silent & nodemon server.js"
+  },
+  "dependencies": {
+    "ai-complaint-engine": "file:..",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.7.0",
+    "nodemailer": "^8.0.1",
+    "socket.io": "^4.8.0"
+  },
+  "devDependencies": {
+    "kill-port": "^2.0.1",
+    "nodemon": "^3.1.7"
+  }
+}

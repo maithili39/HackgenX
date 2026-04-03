@@ -1,0 +1,30 @@
+# create .gitignore with recommended content
+@"
+# virtual env
+venv/
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# python
+__pycache__/
+*.pyc
+
+# Data, models, heavy artifacts (do not commit)
+data/
+models/
+*.pkl
+*.index
+*.zip
+*.tar.gz
+*.csv
+*.h5
+*.pt
+*.bin
+
+# reports, logs
+reports/
+*.log
+"@ > .gitignore

@@ -1,0 +1,14 @@
+{
+  "name": "civicsense-backend",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "setup": "npm install && npm --prefix api install && python -m pip install -r ml-service/requirements.txt",
+    "dev:api": "node api/server.js",
+    "dev:ml": "cd ml-service && python app.py",
+    "dev": "concurrently -k -n API,ML -c cyan,magenta \"npm:dev:api\" \"npm:dev:ml\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
