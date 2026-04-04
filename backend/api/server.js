@@ -39,7 +39,7 @@ app.use('/api/wards', wardRoutes);
 app.use('/api/ai', aiRoutes);  // AI features: chatbot + summarizer
 
 // MongoDB Connect
-mongoose.connect(process.env.MONGO_URI || 'mongodb+srv://kritikamandale_db_user:I9PosQPG2jWEJ7fw@cluster0.6eccz9c.mongodb.net/hackgenx_complaints')
+mongoose.connect(process.env.MONGO_URI || )
     .then(async () => {
         console.log('Connected to MongoDB');
         // Seed wards on startup if collection is empty
