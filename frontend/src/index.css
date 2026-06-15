@@ -316,3 +316,24 @@ h1, h2, h3, h4 {
   letter-spacing: 0.05em;
   font-weight: 600;
 }
+
+/* ── Mobile Responsiveness ── */
+@media (max-width: 768px) {
+  /* Convert grid columns to 1 column on mobile */
+  [style*="grid-template-columns: repeat(4"],
+  [style*="gridTemplateColumns: 'repeat(4"],
+  [style*="grid-template-columns: repeat(3"],
+  [style*="gridTemplateColumns: 'repeat(3"] {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Flex row to col for standard layouts, but keep some horizontal */
+  .flex-row {
+    flex-wrap: wrap;
+  }
+  
+  /* Ensure padding is smaller on mobile */
+  .glass-panel {
+    padding: 1rem;
+  }
+}

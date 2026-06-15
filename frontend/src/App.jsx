@@ -14,6 +14,23 @@ import OfficerDashboard from './pages/OfficerDashboard';
 import CommissionerDashboard from './pages/CommissionerDashboard';
 import CitizenDashboard from './pages/CitizenDashboard';
 import { AuthContext } from './context/AuthContext';
+import axios from 'axios';
+import toast from 'react-hot-toast';
+
+// Global Axios Interceptor for Session Expiry (401)
+axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 401) {
+            localStorage.removeItem('token');
+            if (window.location.pathname !== '/login') {
+                toast.error('Session expired. Please log in again.');
+                window.location.href = '/login';
+            }
+        }
+        return Promise.reject(error);
+    }
+);
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {

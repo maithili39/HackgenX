@@ -2,6 +2,7 @@ import { useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
 import LocationPicker from '../../components/LocationPicker';
+import toast from 'react-hot-toast';
 import {
     CheckCircle, MapPin, Camera, Upload, Building2, User, Phone,
     Info, Sparkles, Loader2, Brain, FilePlus, FileText
@@ -88,10 +89,15 @@ export default function SubmitComplaintSection({ onSuccess }) {
     };
 
     const handlePhotoUpload = (e) => {
-        if (!e.target.files?.[0]) return;
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('File is too large (max 5MB). Please choose a smaller photo.');
+            return;
+        }
         const reader = new FileReader();
         reader.onload = () => setPhoto(reader.result);
-        reader.readAsDataURL(e.target.files[0]);
+        reader.readAsDataURL(file);
     };
 
     const handleClassify = async () => {
@@ -113,6 +119,15 @@ export default function SubmitComplaintSection({ onSuccess }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!location || !location.lat || !location.lng) {
+            toast.error('Please drop a pin on the map to set the exact location.');
+            return;
+        }
+        if (!formData.name || !formData.contact || !formData.homeAddress || !formData.description) {
+            toast.error('Please fill in all required fields.');
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             const payload = { ...formData, photo, location, ward: detectedWard };
@@ -121,9 +136,10 @@ export default function SubmitComplaintSection({ onSuccess }) {
             );
             setSuccessData(res.data.complaint);
             setDetectedWard(null);
+            toast.success('Complaint submitted successfully!');
         } catch (err) { 
             const msg = err.response?.data?.message || 'Error submitting complaint. Please try again.';
-            alert(msg); 
+            toast.error(msg); 
         }
         finally { setIsSubmitting(false); }
     };
