@@ -15,7 +15,7 @@ CivicSense is an AI-powered, centralized public grievance redressal portal. It a
 - **Database:** MongoDB
 
 ## Live Deployment 🚀
-- **Frontend:** [Vercel](https://vercel.com/)
+- **Frontend:** [https://civicsense-bice.vercel.app/](https://civicsense-bice.vercel.app/)
 - **Backend API:** [Render](https://render.com/)
 - **AI Engine:** [Hugging Face Spaces](https://huggingface.co/spaces)
 
