@@ -2,11 +2,17 @@ import { Queue, Worker } from 'bullmq';
 import Redis from 'ioredis';
 import { Complaint } from '../models/Complaint.js';
 
+const isUpstash = (process.env.REDIS_URL || '').includes('upstash.io');
+
 const redisConnection = new Redis(process.env.REDIS_URL || 'redis://127.0.0.1:6379', {
     maxRetriesPerRequest: null,
+    ...(isUpstash && { tls: {} }),
 });
 
-export const slaQueue = new Queue('slaQueue', { connection: redisConnection });
+export const slaQueue = new Queue('slaQueue', {
+    connection: redisConnection,
+    prefix: '{civicsense}',
+});
 
 const ESCALATION_DELAY_MINS = 30;
 
@@ -75,7 +81,7 @@ export function initializeSlaWorker(io) {
         } catch (err) {
             console.error('SLA Worker Error:', err.message);
         }
-    }, { connection: redisConnection });
+    }, { connection: redisConnection, prefix: '{civicsense}' });
 
     worker.on('ready', () => {
         console.log('✅ SLA Escalation BullMQ Worker started');
