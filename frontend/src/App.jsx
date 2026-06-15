@@ -8,6 +8,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import TrackStatus from './pages/TrackStatus';
+import ResetPassword from './pages/ResetPassword';
 import { AuthContext } from './context/AuthContext';
 import api from './api/axios.js';
 import toast from 'react-hot-toast';
@@ -96,6 +97,7 @@ function App() {
                         <Route path="/" element={<Home />} />
                         <Route path="/login" element={<Login />} />
                         <Route path="/register" element={<Register />} />
+                        <Route path="/reset-password" element={<ResetPassword />} />
 
                         {/* Citizen Routes */}
                         <Route path="/submit" element={<Navigate to="/dashboard" state={{ openSection: 'submit' }} replace />} />

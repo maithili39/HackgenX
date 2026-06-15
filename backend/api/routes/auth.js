@@ -208,8 +208,9 @@ router.post('/refresh', async (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
-    res.clearCookie('accessToken');
-    res.clearCookie('refreshToken');
+    const opts = { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none' };
+    res.clearCookie('accessToken', opts);
+    res.clearCookie('refreshToken', opts);
     res.json({ message: 'Logged out successfully' });
 });
 

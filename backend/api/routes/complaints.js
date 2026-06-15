@@ -57,7 +57,6 @@ async function isMlServiceHealthy(url) {
     if (Date.now() < mlNextRetry) return false;
     
     try {
-        const fetch = (await import('node-fetch')).default;
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 2000);
         const res = await fetch(`${url}/health`, { signal: controller.signal });
@@ -144,7 +143,6 @@ async function classifyComplaint(description, department) {
     // ─── 1. Try Python DistilBERT ML Service (primary) ───────────────────────
     if (await isMlServiceHealthy(ML_SERVICE_URL)) {
         try {
-            const fetch = (await import('node-fetch')).default;
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), 8000); // 8s timeout limit
             const mlRes = await fetch(`${ML_SERVICE_URL}/predict`, {
@@ -175,7 +173,6 @@ async function classifyComplaint(description, department) {
     // ─── 2. Try Gemini if ML service is unavailable ───────────────────────────
     if (GEMINI_KEY) {
         try {
-            const fetch = (await import('node-fetch')).default;
             const prompt = `You are a government complaint classifier. Analyze this complaint and respond with ONLY a JSON object (no markdown, no explanation):\n{"department": "one of [Electricity, Water Supply, Roads, Sanitation, Public Works, Billing, Tech Support]", "riskLevel": "one of [Low, Medium, High, Critical]", "emotion": "one of [Neutral, Concerned, Frustrated, Urgent]", "summary": "one sentence summary"}\n\nComplaint: "${description}"`;
             const response = await fetch(
                 `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
