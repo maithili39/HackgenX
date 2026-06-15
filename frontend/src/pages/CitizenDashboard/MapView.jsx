@@ -61,24 +61,36 @@ export default function MapView() {
     });
 
     const handleMapLoad = (map) => {
+        const fallbackToPins = () => {
+            if (filtered.length > 0) {
+                const bounds = new window.google.maps.LatLngBounds();
+                filtered.forEach(c => bounds.extend({ lat: c.location.lat, lng: c.location.lng }));
+                map.fitBounds(bounds);
+            }
+        };
+
+        const handleFallback = () => {
+            fetch('https://ipapi.co/json/')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.latitude && data.longitude) {
+                        map.panTo({ lat: data.latitude, lng: data.longitude });
+                        map.setZoom(12);
+                    } else fallbackToPins();
+                })
+                .catch(() => fallbackToPins());
+        };
+
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
                     map.setZoom(13);
                 },
-                () => {
-                    if (filtered.length > 0) {
-                        const bounds = new window.google.maps.LatLngBounds();
-                        filtered.forEach(c => bounds.extend({ lat: c.location.lat, lng: c.location.lng }));
-                        map.fitBounds(bounds);
-                    }
-                }
+                () => handleFallback()
             );
-        } else if (filtered.length > 0) {
-            const bounds = new window.google.maps.LatLngBounds();
-            filtered.forEach(c => bounds.extend({ lat: c.location.lat, lng: c.location.lng }));
-            map.fitBounds(bounds);
+        } else {
+            handleFallback();
         }
     };
 

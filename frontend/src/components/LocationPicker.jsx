@@ -58,12 +58,26 @@ export default function LocationPicker({ location, onLocationChange }) {
     const autocompleteRef = useRef(null);
 
     useEffect(() => {
-        if (!location && navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                () => {},
-                { timeout: 5000 }
-            );
+        if (!location) {
+            const fetchIPLocation = () => {
+                fetch('https://ipapi.co/json/')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.latitude && data.longitude) {
+                            setCenter({ lat: data.latitude, lng: data.longitude });
+                        }
+                    }).catch(() => {});
+            };
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                    () => fetchIPLocation(),
+                    { timeout: 5000 }
+                );
+            } else {
+                fetchIPLocation();
+            }
         }
     }, [location]);
 
