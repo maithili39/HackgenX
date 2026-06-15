@@ -17,6 +17,7 @@ const LEGEND = [
 ];
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const LIBRARIES = ['places'];
 
 // Dark map style matching app theme
 const DARK_MAP_STYLES = [
@@ -42,7 +43,9 @@ export default function MapView() {
     const [filterStatus, setFilterStatus] = useState('All');
 
     const { isLoaded, loadError } = useJsApiLoader({
+        id: 'google-map-script',
         googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+        libraries: LIBRARIES,
     });
 
     useEffect(() => {

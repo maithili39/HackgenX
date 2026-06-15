@@ -43,6 +43,7 @@ const DARK_MAP_STYLES = [
  */
 export default function LocationPicker({ location, onLocationChange }) {
     const { isLoaded, loadError } = useJsApiLoader({
+        id: 'google-map-script',
         googleMapsApiKey: GOOGLE_MAPS_API_KEY,
         libraries: LIBRARIES,
     });
