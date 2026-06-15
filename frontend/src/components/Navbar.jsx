@@ -60,17 +60,9 @@ export default function Navbar() {
                 letterSpacing: '0.01em',
             }}>
                 <div className="container flex-row justify-between" style={{ height: '2.2rem' }}>
-                    <span>CivicSense Project &nbsp;|&nbsp; Hackathon Demo</span>
+                    <span>CivicSense Project</span>
                     <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
-                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>Screen Reader Access</span>
-                        <span style={{ color: 'rgba(255,255,255,0.55)', display: 'flex', gap: '0.5rem' }}>
-                            <button style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: '0.75rem', padding: '0 2px' }}>A-</button>
-                            <button style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: '0.85rem', padding: '0 2px' }}>A</button>
-                            <button style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: '0.97rem', padding: '0 2px' }}>A+</button>
-                        </span>
-                        <span style={{ color: 'rgba(255,255,255,0.4)' }}>|</span>
                         <span style={{ color: 'rgba(255,255,255,0.55)', letterSpacing: '0.02em' }}>English</span>
-                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>हिन्दी</span>
                     </div>
                 </div>
             </div>
