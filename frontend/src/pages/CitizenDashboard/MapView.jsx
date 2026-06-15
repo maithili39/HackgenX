@@ -60,9 +60,27 @@ export default function MapView() {
         return true;
     });
 
-    const center = filtered.length > 0 
-        ? { lat: filtered[0].location.lat, lng: filtered[0].location.lng } 
-        : { lat: 18.5204, lng: 73.8567 };
+    const handleMapLoad = (map) => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                    map.setZoom(13);
+                },
+                () => {
+                    if (filtered.length > 0) {
+                        const bounds = new window.google.maps.LatLngBounds();
+                        filtered.forEach(c => bounds.extend({ lat: c.location.lat, lng: c.location.lng }));
+                        map.fitBounds(bounds);
+                    }
+                }
+            );
+        } else if (filtered.length > 0) {
+            const bounds = new window.google.maps.LatLngBounds();
+            filtered.forEach(c => bounds.extend({ lat: c.location.lat, lng: c.location.lng }));
+            map.fitBounds(bounds);
+        }
+    };
 
     return (
         <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -109,8 +127,9 @@ export default function MapView() {
                     ) : (
                         <GoogleMap
                             mapContainerStyle={{ width: '100%', height: '100%' }}
-                            center={center}
-                            zoom={filtered.length > 0 ? 13 : 5}
+                            center={{ lat: 18.5204, lng: 73.8567 }}
+                            zoom={5}
+                            onLoad={handleMapLoad}
                             options={{
                                 streetViewControl: false,
                                 mapTypeControl: false,

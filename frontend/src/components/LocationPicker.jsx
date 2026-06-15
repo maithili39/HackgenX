@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { GoogleMap, Marker, Autocomplete, useJsApiLoader } from '@react-google-maps/api';
 import { MapPin, Navigation, Search, X, Loader2 } from 'lucide-react';
@@ -56,6 +56,16 @@ export default function LocationPicker({ location, onLocationChange }) {
     const [isGeocoding, setIsGeocoding] = useState(false);
     const [isFetchingGPS, setIsFetchingGPS] = useState(false);
     const autocompleteRef = useRef(null);
+
+    useEffect(() => {
+        if (!location && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                () => {},
+                { timeout: 5000 }
+            );
+        }
+    }, [location]);
 
     // ── Reverse geocode lat/lng → formatted address ─────────────────────────
     const reverseGeocode = useCallback(async (lat, lng) => {
