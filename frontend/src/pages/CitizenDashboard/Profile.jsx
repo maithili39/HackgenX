@@ -4,7 +4,7 @@ import { AuthContext } from '../../context/AuthContext';
 import { User, Mail, Phone, MapPin, Shield, Camera, Edit3, Check, X, Star, Calendar, FileText } from 'lucide-react';
 
 export default function Profile({ profile, onUpdate }) {
-    
+    const { user } = useContext(AuthContext);
     const [editing, setEditing] = useState(false);
     const [form, setForm] = useState({});
     const [saving, setSaving] = useState(false);

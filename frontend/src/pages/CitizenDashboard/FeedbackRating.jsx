@@ -4,7 +4,7 @@ import { AuthContext } from '../../context/AuthContext';
 import { Star, ThumbsUp, ThumbsDown, Camera, Send, AlertTriangle } from 'lucide-react';
 
 export default function FeedbackRating() {
-    
+    const { user } = useContext(AuthContext);
     const [complaints, setComplaints] = useState([]);
     const [selected, setSelected] = useState(null);
     const [rating, setRating] = useState(0);

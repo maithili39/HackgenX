@@ -36,7 +36,7 @@ function InsightCard({ icon: Icon, title, value, subtitle, color }) {
 }
 
 export default function Analytics() {
-    
+    const { user } = useContext(AuthContext);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 

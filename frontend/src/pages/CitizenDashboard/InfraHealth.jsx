@@ -64,7 +64,7 @@ function GaugeArc({ score }) {
 }
 
 export default function InfraHealth() {
-    
+    const { user } = useContext(AuthContext);
     const [complaints, setComplaints] = useState([]);
     const [ward, setWard] = useState('');
     const [loading, setLoading] = useState(true);

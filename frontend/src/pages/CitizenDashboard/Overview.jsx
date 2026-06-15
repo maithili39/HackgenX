@@ -77,7 +77,7 @@ function StatusProgress({ status }) {
 }
 
 export default function Overview({ onOpenFeedback }) {
-    
+    const { user } = useContext(AuthContext);
     const [stats, setStats] = useState({});
     const [complaints, setComplaints] = useState([]);
     const [filtered, setFiltered] = useState([]);
