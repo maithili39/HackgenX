@@ -80,15 +80,14 @@ The recommended approach to run the entire application stack is via Docker Compo
 
 ---
 
-## Deployment (Railway)
+## Deployment
 
-This repository is configured for automated deployment on [Railway](https://railway.app/). 
-The included `railway.json` defines necessary health checks and Nixpacks build settings.
+This repository is configured for modern cloud deployments:
 
-1. Connect your GitHub repository to a Railway project.
-2. Provision **MongoDB** and **Redis** plugins within your Railway environment.
-3. Deploy the backend and frontend as distinct services.
-4. Provide the required environment variables (including `SENTRY_DSN` for application crash tracking).
+- **Frontend (React/Vite):** Deployed on [Vercel](https://vercel.com/)
+- **Backend API (Node.js):** Deployed on [Render](https://render.com/)
+- **Machine Learning Engine (Python/FastAPI):** Hosted on [Hugging Face Spaces](https://huggingface.co/) for dedicated AI compute.
+- **Database & Cache:** Uses MongoDB Atlas and Upstash Redis.
 
 ---
 
