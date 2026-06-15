@@ -119,11 +119,30 @@ export default function LocationPicker({ location, onLocationChange }) {
     // ── Auto-fetch device GPS ──────────────────────────────────────────────
     const handleAutoFetchGPS = () => {
         setIsFetchingGPS(true);
+
+        const fetchIPLocation = () => {
+            fetch('https://ipapi.co/json/')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.latitude && data.longitude) {
+                        const lat = data.latitude;
+                        const lng = data.longitude;
+                        setMarker({ lat, lng });
+                        setCenter({ lat, lng });
+                        reverseGeocode(lat, lng);
+                    } else {
+                        alert("Could not detect location automatically. Please search for your address manually.");
+                    }
+                })
+                .catch(() => alert("Could not detect location automatically. Please search for your address manually."))
+                .finally(() => setIsFetchingGPS(false));
+        };
+
         if (!navigator.geolocation) {
-            alert('Geolocation is not supported by your browser.');
-            setIsFetchingGPS(false);
+            fetchIPLocation();
             return;
         }
+        
         navigator.geolocation.getCurrentPosition(
             (pos) => {
                 const lat = pos.coords.latitude;
@@ -133,14 +152,7 @@ export default function LocationPicker({ location, onLocationChange }) {
                 reverseGeocode(lat, lng);
                 setIsFetchingGPS(false);
             },
-            () => {
-                // Permission denied or error — fall back to default city
-                const { lat, lng } = DEFAULT_CENTER;
-                setMarker({ lat, lng });
-                setCenter({ lat, lng });
-                reverseGeocode(lat, lng);
-                setIsFetchingGPS(false);
-            },
+            () => fetchIPLocation(),
             { enableHighAccuracy: true, timeout: 8000 }
         );
     };
