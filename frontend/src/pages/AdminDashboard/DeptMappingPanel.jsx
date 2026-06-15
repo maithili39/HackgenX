@@ -25,7 +25,7 @@ export default function DeptMappingPanel() {
     const loadMappings = async () => {
         setLoading(true);
         try {
-            const r = await axios.get('http://localhost:5000/api/complaints/dept-mapping', {
+            const r = await axios.get(`${__API_BASE__}/api/complaints/dept-mapping`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setMappings(r.data);
@@ -53,7 +53,7 @@ export default function DeptMappingPanel() {
         setSaving(true);
         setError('');
         try {
-            await axios.put('http://localhost:5000/api/complaints/dept-mapping',
+            await axios.put(`${__API_BASE__}/api/complaints/dept-mapping`,
                 { mappings },
                 { headers: { Authorization: `Bearer ${token}` } }
             );

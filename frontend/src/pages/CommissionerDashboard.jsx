@@ -15,8 +15,8 @@ export default function CommissionerDashboard() {
     const fetchStats = async () => {
         try {
             const [statsRes, allRes] = await Promise.all([
-                axios.get('http://localhost:5000/api/complaints/stats/departments', { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get('http://localhost:5000/api/complaints/all', { headers: { Authorization: `Bearer ${token}` } })
+                axios.get(`${__API_BASE__}/api/complaints/stats/departments`, { headers: { Authorization: `Bearer ${token}` } }),
+                axios.get(`${__API_BASE__}/api/complaints/all`, { headers: { Authorization: `Bearer ${token}` } })
             ]);
             setDeptStats(statsRes.data);
             const all = allRes.data;

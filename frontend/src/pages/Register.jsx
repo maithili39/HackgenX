@@ -30,9 +30,7 @@ export default function Register() {
     const [otpSending, setOtpSending] = useState(false);
     const [otpPreviewUrl, setOtpPreviewUrl] = useState('');
 
-    // Hardcoded OTP – same for all roles (demo)
-    const HARDCODED_OTP = '482916';
-    const API_BASE = 'http://localhost:5000/api';
+    const API_BASE = __API_BASE__;
 
     const { register } = useContext(AuthContext);
     const navigate = useNavigate();
@@ -69,15 +67,11 @@ export default function Register() {
         }
 
         // ── Step 2: Verify OTP ─────────────────────────────────────────────────
-        if (otp !== HARDCODED_OTP) {
-            setError('Invalid OTP. Please enter the correct 6-digit code.');
-            return;
-        }
 
         setLoading(true);
         setError('');
         try {
-            const user = await register(name, email, password, role, department || null);
+            const user = await register(name, email, password, role, department || null, otp);
             const dest = ROLE_REDIRECTS[user.role] || '/';
             if (user.role === 'citizen') {
                 navigate(dest, { state: { openSection: 'submit' } });

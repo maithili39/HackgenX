@@ -6,7 +6,7 @@ import { MapPin, Navigation, Search, X, Loader2 } from 'lucide-react';
 // ── API Key ──────────────────────────────────────────────────────────────────
 // Set VITE_GOOGLE_MAPS_API_KEY in your .env file, or replace the string below.
 const GOOGLE_MAPS_API_KEY =
-    import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyA_placeholder_test_key_for_hackathon';
+    import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 const LIBRARIES = ['places'];
 

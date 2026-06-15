@@ -42,7 +42,7 @@ export default function Analytics() {
 
     useEffect(() => {
         if (!token) return;
-        axios.get('http://localhost:5000/api/complaints/citizen-stats', {
+        axios.get(`${__API_BASE__}/api/complaints/citizen-stats`, {
             headers: { Authorization: `Bearer ${token}` }
         }).then(r => setStats(r.data))
             .catch(() => { })

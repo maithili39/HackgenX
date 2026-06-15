@@ -41,7 +41,7 @@ export default function Notifications({ unreadCount, setUnreadCount, profile }) 
     const savePrefs = async () => {
         setSavingPrefs(true);
         try {
-            await axios.put('http://localhost:5000/api/auth/profile', prefs, { headers: { Authorization: `Bearer ${token}` } });
+            await axios.put(`${__API_BASE__}/api/auth/profile`, prefs, { headers: { Authorization: `Bearer ${token}` } });
             setPrefsSaved(true);
             setTimeout(() => setPrefsSaved(false), 3000);
         } catch { } finally { setSavingPrefs(false); }

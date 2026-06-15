@@ -88,13 +88,13 @@ export default function Overview({ onOpenFeedback }) {
     const [mapModal, setMapModal] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const GOOGLE_MAPS_KEY = 'AIzaSyDemo_placeholder'; // Replace with your key
+
 
     useEffect(() => {
         if (!token) return;
         Promise.all([
-            axios.get('http://localhost:5000/api/complaints/citizen-stats', { headers: { Authorization: `Bearer ${token}` } }),
-            axios.get('http://localhost:5000/api/complaints/my-complaints', { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get(`${__API_BASE__}/api/complaints/citizen-stats`, { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get(`${__API_BASE__}/api/complaints/my-complaints`, { headers: { Authorization: `Bearer ${token}` } }),
         ]).then(([statsRes, listRes]) => {
             setStats(statsRes.data);
             setComplaints(listRes.data);

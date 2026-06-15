@@ -6,8 +6,8 @@ import { User } from '../models/User.js';
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'hackathon_secret_key_123';
 
-// ─── Hardcoded OTP (same for all roles – demo only) ──────────────────────────
-const HARDCODED_OTP = '482916';
+// ─── In-Memory OTP Store (email -> { otp, expiry }) ─────────────────────────
+const otpStore = new Map();
 
 // ─── Send OTP via Nodemailer (Ethereal test account) ─────────────────────────
 router.post('/send-otp', async (req, res) => {
@@ -15,22 +15,17 @@ router.post('/send-otp', async (req, res) => {
         const { email, name, role } = req.body;
         if (!email) return res.status(400).json({ message: 'Email is required' });
 
-        // Auto-provision a free Ethereal test SMTP account (no real credentials needed)
-        const testAccount = await nodemailer.createTestAccount();
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.ethereal.email',
-            port: 587,
-            secure: false,
-            auth: { user: testAccount.user, pass: testAccount.pass },
-        });
+        if (!process.env.RESEND_API_KEY) {
+            console.error('Missing RESEND_API_KEY in backend/api/.env');
+            return res.status(500).json({ message: 'Email API is not configured on the server.' });
+        }
 
         const roleLabel = (role || 'user').replace('_', ' ').toUpperCase();
 
-        const info = await transporter.sendMail({
-            from: '"CivicSense Portal" <noreply@civicsense.gov>',
-            to: email,
-            subject: `[CivicSense] Email Verification OTP`,
-            html: `
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        otpStore.set(email, { otp, expiry: Date.now() + 5 * 60 * 1000 }); // 5 min expiry
+
+        const htmlContent = `
 <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;
            background:#0f172a;color:#e2e8f0;border-radius:12px;border:1px solid #1e293b;">
   <h2 style="color:#3b82f6;margin-bottom:4px;">CivicSense Portal</h2>
@@ -38,35 +33,50 @@ router.post('/send-otp', async (req, res) => {
   <hr style="border-color:#1e293b;margin:16px 0;" />
 
   <p>Hello <strong>${name || 'User'}</strong>,</p>
-  <p>You are registering as a <strong>${roleLabel}</strong> on the GrievanceGov portal.
+  <p>You are registering as a <strong>${roleLabel}</strong> on the CivicSense portal.
      Please verify your email with the OTP below:</p>
 
   <div style="text-align:center;margin:28px 0;">
     <span style="font-size:2.8rem;font-weight:bold;letter-spacing:0.35em;
                  color:#3b82f6;background:#1e293b;padding:18px 36px;
                  border-radius:10px;display:inline-block;
-                 border:2px solid #3b82f6;">${HARDCODED_OTP}</span>
+                 border:2px solid #3b82f6;">${otp}</span>
   </div>
 
   <p style="color:#94a3b8;font-size:0.85rem;">
-    This OTP is valid for this session only. Do not share it with anyone.
+    This OTP is valid for 5 minutes. Do not share it with anyone.
   </p>
   <hr style="border-color:#1e293b;margin:20px 0;" />
   <p style="color:#475569;font-size:0.75rem;">
     If you did not initiate this registration, please ignore this email.
   </p>
-</div>`,
+</div>`;
+
+        const resendRes = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                from: 'CivicSense <onboarding@resend.dev>',
+                to: email,
+                subject: '[CivicSense] Email Verification OTP',
+                html: htmlContent
+            })
         });
 
-        const previewUrl = nodemailer.getTestMessageUrl(info);
+        const resendData = await resendRes.json();
 
-        // Always log the preview URL so devs can view the email in browser
-        console.log('\n📧  OTP EMAIL DISPATCHED');
+        if (!resendRes.ok) {
+            throw new Error(resendData.message || 'Failed to send via Resend API');
+        }
+
+        console.log('\n📧  RESEND API: OTP EMAIL DISPATCHED');
         console.log(`    To      : ${email}  (Role: ${roleLabel})`);
-        console.log(`    OTP     : ${HARDCODED_OTP}`);
-        console.log(`    Preview : ${previewUrl}\n`);
+        console.log(`    Msg ID  : ${resendData.id}\n`);
 
-        res.json({ message: 'OTP sent successfully', previewUrl });
+        res.json({ message: 'OTP sent successfully to your email' });
     } catch (error) {
         console.error('Send OTP error:', error);
         res.status(500).json({ message: 'Failed to send OTP email', error: error.message });
@@ -88,11 +98,23 @@ const authMiddleware = (req, res, next) => {
 // Register Citizen, Field Worker, Officer, Commissioner, or Admin
 router.post('/register', async (req, res) => {
     try {
-        const { name, email, password, role, department, phone } = req.body;
+        const { name, email, password, role, department, phone, otp } = req.body;
 
-        if (!name || !email || !password) {
-            return res.status(400).json({ message: 'Please provide all required fields' });
+        if (!name || !email || !password || !otp) {
+            return res.status(400).json({ message: 'Please provide all required fields including OTP' });
         }
+
+        // Verify OTP
+        const stored = otpStore.get(email);
+        if (!stored) return res.status(400).json({ message: 'No OTP requested or OTP expired' });
+        if (Date.now() > stored.expiry) {
+            otpStore.delete(email);
+            return res.status(400).json({ message: 'OTP expired. Please request a new one.' });
+        }
+        if (stored.otp !== otp) return res.status(400).json({ message: 'Invalid OTP' });
+        
+        // OTP verified successfully, clear it
+        otpStore.delete(email);
 
         const allowedRoles = ['citizen', 'admin', 'field_worker', 'officer', 'commissioner'];
         const userRole = allowedRoles.includes(role) ? role : 'citizen';
@@ -114,7 +136,7 @@ router.post('/register', async (req, res) => {
         const token = jwt.sign(
             { userId: user._id, role: user.role, department: user.department, name: user.name },
             JWT_SECRET,
-            { expiresIn: '1d' }
+            { expiresIn: '7d' }
         );
         res.status(201).json({
             token,
@@ -144,7 +166,7 @@ router.post('/login', async (req, res) => {
         const token = jwt.sign(
             { userId: user._id, role: user.role, department: user.department, name: user.name },
             JWT_SECRET,
-            { expiresIn: '1d' }
+            { expiresIn: '7d' }
         );
         res.json({
             token,

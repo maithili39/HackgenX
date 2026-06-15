@@ -31,7 +31,7 @@ export default function TrackStatus() {
 
     const fetchMyComplaints = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/complaints/my-complaints', {
+            const res = await axios.get(`${__API_BASE__}/api/complaints/my-complaints`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setComplaints(res.data);
@@ -44,7 +44,7 @@ export default function TrackStatus() {
         e.preventDefault();
         setLoading(true); setError(''); setComplaint(null);
         try {
-            const res = await axios.get('http://localhost:5000/api/complaints/my-complaints', {
+            const res = await axios.get(`${__API_BASE__}/api/complaints/my-complaints`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const found = res.data.find(c =>

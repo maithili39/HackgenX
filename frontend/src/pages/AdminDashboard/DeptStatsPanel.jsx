@@ -25,7 +25,7 @@ export default function DeptStatsPanel() {
 
     useEffect(() => {
         if (!token) return;
-        axios.get('http://localhost:5000/api/complaints/stats/departments', {
+        axios.get(`${__API_BASE__}/api/complaints/stats/departments`, {
             headers: { Authorization: `Bearer ${token}` }
         }).then(r => setStats(r.data))
             .catch(() => setError('Failed to load department stats'))

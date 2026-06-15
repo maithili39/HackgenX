@@ -23,7 +23,7 @@ export default function FieldWorkerDashboard() {
 
     const fetchAssigned = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/complaints/assigned', {
+            const res = await axios.get(`${__API_BASE__}/api/complaints/assigned`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setComplaints(res.data);

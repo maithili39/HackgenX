@@ -16,7 +16,7 @@ export default function HeatmapPanel() {
     const { token } = useContext(AuthContext);
 
     useEffect(() => {
-        axios.get('http://localhost:5000/api/complaints/heatmap', {
+        axios.get(`${__API_BASE__}/api/complaints/heatmap`, {
             headers: { Authorization: `Bearer ${token}` }
         }).then(res => {
             setPoints(res.data);

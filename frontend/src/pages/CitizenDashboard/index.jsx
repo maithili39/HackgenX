@@ -54,7 +54,7 @@ export default function CitizenDashboard() {
 
     useEffect(() => {
         if (!token) return;
-        axios.get('http://localhost:5000/api/auth/me', {
+        axios.get(`${__API_BASE__}/api/auth/me`, {
             headers: { Authorization: `Bearer ${token}` }
         }).then(r => setProfile(r.data)).catch(() => { });
     }, [token]);

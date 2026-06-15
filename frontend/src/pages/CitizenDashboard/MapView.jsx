@@ -1,7 +1,8 @@
-import { useState, useEffect, useContext, useRef } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
-import { Map, Layers, ZoomIn } from 'lucide-react';
+import { Map, Layers, ZoomIn, Loader2 } from 'lucide-react';
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 
 const STATUS_PIN_COLORS = {
     Submitted: '#3b82f6', 'Under Review': '#f59e0b', Assigned: '#8b5cf6',
@@ -15,6 +16,23 @@ const LEGEND = [
     { label: 'Submitted / Under Review', color: '#3b82f6' },
 ];
 
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+// Dark map style matching app theme
+const DARK_MAP_STYLES = [
+    { elementType: 'geometry', stylers: [{ color: '#1d2c4d' }] },
+    { elementType: 'labels.text.fill', stylers: [{ color: '#8ec3b9' }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: '#1a3646' }] },
+    { featureType: 'administrative.country', elementType: 'geometry.stroke', stylers: [{ color: '#4b6878' }] },
+    { featureType: 'administrative.province', elementType: 'geometry.stroke', stylers: [{ color: '#4b6878' }] },
+    { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#304a7d' }] },
+    { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#98a5be' }] },
+    { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#2c6675' }] },
+    { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0e1626' }] },
+    { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#4e6d70' }] },
+    { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+];
+
 export default function MapView() {
     const { token } = useContext(AuthContext);
     const [complaints, setComplaints] = useState([]);
@@ -23,9 +41,13 @@ export default function MapView() {
     const [showHeatmap, setShowHeatmap] = useState(false);
     const [filterStatus, setFilterStatus] = useState('All');
 
+    const { isLoaded, loadError } = useJsApiLoader({
+        googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    });
+
     useEffect(() => {
         if (!token) return;
-        axios.get('http://localhost:5000/api/complaints/nearby', {
+        axios.get(`${__API_BASE__}/api/complaints/nearby`, {
             headers: { Authorization: `Bearer ${token}` }
         }).then(r => setComplaints(r.data))
             .catch(() => { })
@@ -40,15 +62,9 @@ export default function MapView() {
         return true;
     });
 
-    // Build Google Maps Embed URL with multiple markers
-    const buildMapUrl = () => {
-        if (filtered.length === 0) {
-            return `https://maps.google.com/maps?q=India&z=5&output=embed`;
-        }
-        // Center on first complaint
-        const center = filtered[0];
-        return `https://maps.google.com/maps?q=${center.location.lat},${center.location.lng}&z=13&output=embed`;
-    };
+    const center = filtered.length > 0 
+        ? { lat: filtered[0].location.lat, lng: filtered[0].location.lng } 
+        : { lat: 18.5204, lng: 73.8567 };
 
     return (
         <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -77,19 +93,43 @@ export default function MapView() {
 
             <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 320px' : '1fr', gap: '1rem', alignItems: 'start' }}>
                 {/* Map */}
-                <div className="glass-panel" style={{ padding: 0, overflow: 'hidden', borderRadius: 14, position: 'relative' }}>
+                <div className="glass-panel" style={{ padding: 0, overflow: 'hidden', borderRadius: 14, position: 'relative', height: 480 }}>
                     {loading && (
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.8)', zIndex: 5 }}>
                             <p style={{ color: 'var(--text-muted)' }}>Loading map data…</p>
                         </div>
                     )}
-                    <iframe
-                        title="complaint-map"
-                        width="100%" height="480"
-                        style={{ border: 'none', display: 'block' }}
-                        src={buildMapUrl()}
-                        allowFullScreen
-                    />
+                    
+                    {loadError ? (
+                        <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', background: 'rgba(239,68,68,0.06)', color: '#ef4444' }}>
+                            <p>Google Maps failed to load. Check API Key.</p>
+                        </div>
+                    ) : !isLoaded ? (
+                        <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-page)', color: 'var(--text-muted)' }}>
+                            <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
+                        </div>
+                    ) : (
+                        <GoogleMap
+                            mapContainerStyle={{ width: '100%', height: '100%' }}
+                            center={center}
+                            zoom={filtered.length > 0 ? 13 : 5}
+                            options={{
+                                streetViewControl: false,
+                                mapTypeControl: false,
+                                fullscreenControl: true,
+                                styles: DARK_MAP_STYLES,
+                            }}
+                        >
+                            {filtered.map(c => (
+                                <Marker
+                                    key={c._id}
+                                    position={{ lat: c.location.lat, lng: c.location.lng }}
+                                    onClick={() => setSelected(c)}
+                                />
+                            ))}
+                        </GoogleMap>
+                    )}
+
                     {/* Overlay complaint points as badges */}
                     <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', flexDirection: 'column', gap: '0.4rem', pointerEvents: 'none' }}>
                         {LEGEND.map(l => (
@@ -142,12 +182,29 @@ export default function MapView() {
                         </div>
                         <button onClick={() => setSelected(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.1rem' }}>✕</button>
                     </div>
-                    <iframe
-                        title="selected-map"
-                        width="100%" height="220"
-                        style={{ border: 'none', borderRadius: 10, display: 'block', marginBottom: '0.75rem' }}
-                        src={`https://maps.google.com/maps?q=${selected.location.lat},${selected.location.lng}&z=16&output=embed`}
-                    />
+                    
+                    {isLoaded ? (
+                        <div style={{ width: '100%', height: 220, borderRadius: 10, overflow: 'hidden', marginBottom: '0.75rem' }}>
+                            <GoogleMap
+                                mapContainerStyle={{ width: '100%', height: '100%' }}
+                                center={{ lat: selected.location.lat, lng: selected.location.lng }}
+                                zoom={16}
+                                options={{
+                                    streetViewControl: false,
+                                    mapTypeControl: false,
+                                    fullscreenControl: false,
+                                    styles: DARK_MAP_STYLES,
+                                }}
+                            >
+                                <Marker position={{ lat: selected.location.lat, lng: selected.location.lng }} />
+                            </GoogleMap>
+                        </div>
+                    ) : (
+                        <div style={{ width: '100%', height: 220, borderRadius: 10, background: 'var(--bg-page)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
+                        </div>
+                    )}
+                    
                     <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{selected.description}</p>
                     <a href={`https://www.google.com/maps?q=${selected.location.lat},${selected.location.lng}`}
                         target="_blank" rel="noopener noreferrer"
@@ -174,6 +231,7 @@ export default function MapView() {
                     </div>
                 </div>
             )}
+            <style>{`@keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }`}</style>
         </div>
     );
 }

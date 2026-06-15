@@ -54,7 +54,7 @@ export default function SubmitComplaintSection({ onSuccess }) {
             setIsSummarizing(true);
             try {
                 const res = await axios.post(
-                    'http://localhost:5000/api/ai/summarize',
+                    `${__API_BASE__}/api/ai/summarize`,
                     { text: formData.description },
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
@@ -73,7 +73,7 @@ export default function SubmitComplaintSection({ onSuccess }) {
         setLocation(loc);
         if (!loc) { setDetectedWard(null); return; }
         try {
-            const res = await axios.post('http://localhost:5000/api/wards/detect',
+            const res = await axios.post(`${__API_BASE__}/api/wards/detect`,
                 { lat: loc.lat, lng: loc.lng },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -98,7 +98,7 @@ export default function SubmitComplaintSection({ onSuccess }) {
         if (formData.description.trim().length < 10) { setClassifyError('Enter at least 10 characters first.'); return; }
         setIsClassifying(true); setClassifyError(''); setAiResult(null);
         try {
-            const res = await axios.post('http://localhost:5000/api/complaints/classify',
+            const res = await axios.post(`${__API_BASE__}/api/complaints/classify`,
                 { description: formData.description, department: '' },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -115,8 +115,8 @@ export default function SubmitComplaintSection({ onSuccess }) {
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            const payload = { ...formData, photo, location };
-            const res = await axios.post('http://localhost:5000/api/complaints', payload,
+            const payload = { ...formData, photo, location, ward: detectedWard };
+            const res = await axios.post(`${__API_BASE__}/api/complaints`, payload,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             setSuccessData(res.data.complaint);

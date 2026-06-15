@@ -24,8 +24,8 @@ export default function OfficerDashboard() {
     const fetchData = async () => {
         try {
             const [cRes, wRes] = await Promise.all([
-                axios.get('http://localhost:5000/api/complaints/all', { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get('http://localhost:5000/api/auth/field-workers', { headers: { Authorization: `Bearer ${token}` } })
+                axios.get(`${__API_BASE__}/api/complaints/all`, { headers: { Authorization: `Bearer ${token}` } }),
+                axios.get(`${__API_BASE__}/api/auth/field-workers`, { headers: { Authorization: `Bearer ${token}` } })
             ]);
             setComplaints(cRes.data);
             setWorkers(wRes.data);
@@ -236,7 +236,7 @@ export default function OfficerDashboard() {
                                     </div>
                                     {/* Officer note */}
                                     <div style={{ marginBottom: '0.75rem' }}>
-                                        <label style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.82rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <label style={{ marginBottom: '0.35rem', fontSize: '0.82rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                             <MessageSquare size={14} /> Officer Note (optional)
                                         </label>
                                         <textarea className="input-base" value={verifyNote} onChange={e => setVerifyNote(e.target.value)}

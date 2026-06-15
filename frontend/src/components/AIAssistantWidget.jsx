@@ -75,7 +75,7 @@ export default function AIAssistantWidget() {
 
         try {
             const res = await axios.post(
-                'http://localhost:5000/api/ai/chatbot',
+                `${__API_BASE__}/api/ai/chatbot`,
                 { query },
                 { headers: { Authorization: `Bearer ${token}` }, timeout: 8000 }
             );

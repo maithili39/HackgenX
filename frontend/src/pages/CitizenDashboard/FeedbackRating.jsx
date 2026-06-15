@@ -18,7 +18,7 @@ export default function FeedbackRating() {
 
     useEffect(() => {
         if (!token) return;
-        axios.get('http://localhost:5000/api/complaints/my-complaints', {
+        axios.get(`${__API_BASE__}/api/complaints/my-complaints`, {
             headers: { Authorization: `Bearer ${token}` }
         }).then(r => {
             // Show resolved complaints pending citizen feedback (accepted or pending)

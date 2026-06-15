@@ -73,8 +73,8 @@ export default function InfraHealth() {
     useEffect(() => {
         if (!token) return;
         Promise.all([
-            axios.get('http://localhost:5000/api/complaints/my-complaints', { headers: { Authorization: `Bearer ${token}` } }),
-            axios.get('http://localhost:5000/api/auth/me', { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get(`${__API_BASE__}/api/complaints/my-complaints`, { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get(`${__API_BASE__}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } }),
         ]).then(([cRes, uRes]) => {
             setComplaints(cRes.data);
             setWard(uRes.data.ward || 'Your Ward');

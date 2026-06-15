@@ -8,6 +8,7 @@ import authRoutes from './routes/auth.js';
 import complaintRoutes from './routes/complaints.js';
 import wardRoutes, { seedWards } from './routes/wardRoutes.js';
 import aiRoutes from './routes/ai.js';
+import { startSlaEscalation } from './routes/slaEscalation.js';
 
 dotenv.config();
 
@@ -39,11 +40,11 @@ app.use('/api/wards', wardRoutes);
 app.use('/api/ai', aiRoutes);  // AI features: chatbot + summarizer
 
 // MongoDB Connect
-mongoose.connect(process.env.MONGO_URI || )
+mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/civicsense')
     .then(async () => {
         console.log('Connected to MongoDB');
-        // Seed wards on startup if collection is empty
         await seedWards();
+        startSlaEscalation(io);
     })
     .catch(err => {
         console.error('MongoDB connection error:', err);

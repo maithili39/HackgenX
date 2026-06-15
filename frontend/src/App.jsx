@@ -6,7 +6,6 @@ import Footer from './components/Footer';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import SubmitComplaint from './pages/SubmitComplaint';
 import TrackStatus from './pages/TrackStatus';
 import AdminDashboard from './pages/AdminDashboard';
 import FieldWorkerDashboard from './pages/FieldWorkerDashboard';
@@ -64,11 +63,7 @@ function App() {
                     <Route path="/register" element={<Register />} />
 
                     {/* Citizen Routes */}
-                    <Route path="/submit" element={
-                        <ProtectedRoute allowedRoles={['citizen']}>
-                            <SubmitComplaint />
-                        </ProtectedRoute>
-                    } />
+                    <Route path="/submit" element={<Navigate to="/dashboard" state={{ openSection: 'submit' }} replace />} />
                     <Route path="/track" element={
                         <ProtectedRoute allowedRoles={['citizen']}>
                             <TrackStatus />

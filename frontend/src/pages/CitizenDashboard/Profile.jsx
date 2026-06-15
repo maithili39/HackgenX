@@ -15,7 +15,7 @@ export default function Profile({ profile, onUpdate }) {
     useEffect(() => {
         if (profile) setForm({ name: profile.name, phone: profile.phone || '', ward: profile.ward || '', address: profile.address || '' });
         if (token) {
-            axios.get('http://localhost:5000/api/complaints/my-complaints', { headers: { Authorization: `Bearer ${token}` } })
+            axios.get(`${__API_BASE__}/api/complaints/my-complaints`, { headers: { Authorization: `Bearer ${token}` } })
                 .then(r => setComplaintCount(r.data.length)).catch(() => { });
         }
     }, [profile, token]);
@@ -31,7 +31,7 @@ export default function Profile({ profile, onUpdate }) {
     const handleSave = async () => {
         setSaving(true); setMsg('');
         try {
-            const res = await axios.put('http://localhost:5000/api/auth/profile', form, {
+            const res = await axios.put(`${__API_BASE__}/api/auth/profile`, form, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             onUpdate(res.data.user);
