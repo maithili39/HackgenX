@@ -100,13 +100,13 @@ function App() {
                         <Route path="/reset-password" element={<ResetPassword />} />
 
                         {/* Citizen Routes */}
-                        <Route path="/submit" element={<Navigate to="/dashboard" state={{ openSection: 'submit' }} replace />} />
+                        <Route path="/submit" element={<Navigate to="/dashboard/submit" replace />} />
                         <Route path="/track" element={
                             <ProtectedRoute allowedRoles={['citizen']}>
                                 <TrackStatus />
                             </ProtectedRoute>
                         } />
-                        <Route path="/dashboard" element={
+                        <Route path="/dashboard/*" element={
                             <ProtectedRoute allowedRoles={['citizen']}>
                                 <CitizenDashboard />
                             </ProtectedRoute>

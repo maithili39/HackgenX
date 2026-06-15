@@ -79,7 +79,7 @@ export default function InfraHealth() {
             setComplaints(cRes.data);
             setWard(uRes.data.ward || 'Your Ward');
         }).catch(() => { }).finally(() => setLoading(false));
-    }, []);
+    }, [user]);
 
     const { score, change, reasons } = calcWardScore(complaints);
     const scoreColor = score >= 70 ? '#10b981' : score >= 40 ? '#f59e0b' : '#ef4444';

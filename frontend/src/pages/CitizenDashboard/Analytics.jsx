@@ -45,7 +45,7 @@ export default function Analytics() {
         api.get(`/api/complaints/citizen-stats`).then(r => setStats(r.data))
             .catch(() => { })
             .finally(() => setLoading(false));
-    }, []);
+    }, [user]);
 
     if (loading) return (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300, color: 'var(--text-muted)' }}>

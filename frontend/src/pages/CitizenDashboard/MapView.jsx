@@ -50,7 +50,7 @@ export default function MapView() {
         api.get(`/api/complaints/nearby`).then(r => setComplaints(r.data))
             .catch(() => { })
             .finally(() => setLoading(false));
-    }, []);
+    }, [user]);
 
     const withLocation = complaints.filter(c => c.location?.lat && c.location?.lng);
     const filtered = filterStatus === 'All' ? withLocation : withLocation.filter(c => {

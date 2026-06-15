@@ -89,18 +89,18 @@ export default function Overview({ onOpenFeedback }) {
     const [loading, setLoading] = useState(true);
 
 
+    useEffect(() => {
+        if (!user) return;
+        api.get(`/api/complaints/citizen-stats`).then(r => setStats(r.data)).catch(console.error);
+    }, [user]);
 
     useEffect(() => {
         if (!user) return;
-        Promise.all([
-            api.get(`/api/complaints/citizen-stats`),
-            api.get(`/api/complaints/my-complaints`),
-        ]).then(([statsRes, listRes]) => {
-            setStats(statsRes.data);
-            setComplaints(listRes.data);
-            setFiltered(listRes.data);
-        }).catch(console.error).finally(() => setLoading(false));
-    }, []);
+        api.get(`/api/complaints/my-complaints`).then(r => {
+            setComplaints(r.data);
+            setFiltered(r.data);
+        }).catch(() => { }).finally(() => setLoading(false));
+    }, [user]);
 
     useEffect(() => {
         let result = [...complaints];

@@ -1,6 +1,6 @@
 import { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../../context/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import Overview from './Overview';
 import Profile from './Profile';
 import MapView from './MapView';
@@ -45,20 +45,18 @@ export default function CitizenDashboard() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Read navigation state (e.g., from Register page after signup)
-    const initialSection = location.state?.openSection || 'submit';
-
-    const [activeSection, setActiveSection] = useState(initialSection);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
     const [unreadCount, setUnreadCount] = useState(3);
     const [profile, setProfile] = useState(null);
 
+    const activeSection = location.pathname.split('/').pop() || 'submit';
+
     useEffect(() => {
         if (!user) return;
         api.get(`/api/auth/me`).then(r => setProfile(r.data)).catch(() => { });
-    }, []);
+    }, [user]);
 
     useSocket(user ? {
         [`complaint_updated_${user.id}`]: (updated) => {
@@ -84,22 +82,8 @@ export default function CitizenDashboard() {
     const handleLogout = () => { logout(); navigate('/login'); };
 
     const navTo = (id) => {
-        setActiveSection(id);
+        navigate(`/dashboard/${id}`);
         setMobileOpen(false);
-    };
-
-    const renderSection = () => {
-        switch (activeSection) {
-            case 'submit': return <SubmitComplaintSection onSuccess={() => setActiveSection('overview')} />;
-            case 'overview': return <Overview onOpenFeedback={() => setActiveSection('feedback')} />;
-            case 'profile': return <Profile profile={profile} onUpdate={setProfile} />;
-            case 'map': return <MapView />;
-            case 'analytics': return <Analytics />;
-            case 'notifications': return <Notifications notifications={notifications} setNotifications={setNotifications} unreadCount={unreadCount} setUnreadCount={setUnreadCount} profile={profile} />;
-            case 'feedback': return <FeedbackRating />;
-            case 'health': return <InfraHealth />;
-            default: return <SubmitComplaintSection onSuccess={() => setActiveSection('overview')} />;
-        }
     };
 
     return (
@@ -250,14 +234,14 @@ export default function CitizenDashboard() {
                                 <FilePlus size={15} /> + File Grievance
                             </button>
                         )}
-                        <button onClick={() => setActiveSection('notifications')}
+                        <button onClick={() => navTo('notifications')}
                             style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', borderRadius: '50%', color: 'var(--text-secondary)' }}>
                             <Bell size={20} />
                             {unreadCount > 0 && (
                                 <span style={{ position: 'absolute', top: 2, right: 2, width: 10, height: 10, background: '#F4A698', borderRadius: '50%', border: '2px solid var(--bg-page)' }} />
                             )}
                         </button>
-                        <button onClick={() => setActiveSection('profile')}
+                        <button onClick={() => navTo('profile')}
                             style={{ width: 34, height: 34, borderRadius: '50%', border: '2px solid var(--accent-primary)', overflow: 'hidden', cursor: 'pointer', background: 'linear-gradient(135deg,#86C5E5,#A8E0C4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {profile?.profilePicture
                                 ? <img src={profile.profilePicture} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -270,7 +254,18 @@ export default function CitizenDashboard() {
                 {/* Page content */}
                 <main style={{ flex: 1, padding: '2rem', maxWidth: 1200, width: '100%', margin: '0 auto' }}
                     className="animate-fade-in dashboard-content">
-                    {renderSection()}
+                    <Routes>
+                        <Route path="/" element={<Navigate to="submit" replace />} />
+                        <Route path="submit" element={<SubmitComplaintSection onSuccess={() => navigate('/dashboard/overview')} />} />
+                        <Route path="overview" element={<Overview onOpenFeedback={() => navigate('/dashboard/feedback')} />} />
+                        <Route path="profile" element={<Profile profile={profile} onUpdate={setProfile} />} />
+                        <Route path="map" element={<MapView />} />
+                        <Route path="analytics" element={<Analytics />} />
+                        <Route path="notifications" element={<Notifications notifications={notifications} setNotifications={setNotifications} unreadCount={unreadCount} setUnreadCount={setUnreadCount} profile={profile} />} />
+                        <Route path="feedback" element={<FeedbackRating />} />
+                        <Route path="health" element={<InfraHealth />} />
+                        <Route path="*" element={<Navigate to="submit" replace />} />
+                    </Routes>
                 </main>
             </div>
 

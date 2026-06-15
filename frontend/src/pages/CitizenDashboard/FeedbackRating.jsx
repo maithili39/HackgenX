@@ -26,7 +26,7 @@ export default function FeedbackRating() {
                 setSelected(resolved[0]);
             }
         }).catch(() => { });
-    }, []);
+    }, [user]);
 
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
