@@ -1,0 +1,36 @@
+text,label
+"The streetlight in front of my house has been broken for three days.",Electricity
+"Massive power outage in the entire block, no electricity since morning.",Electricity
+"Live wire hanging from the transformer, very dangerous.",Electricity
+"Voltage fluctuations are burning my appliances.",Electricity
+"There is no water supply in our locality today.",Water Supply
+"Sewage is overflowing onto the street from the manhole.",Water Supply
+"A main water pipe burst and is flooding the road.",Water Supply
+"Water pressure is extremely low, barely anything coming out of the tap.",Water Supply
+"Huge pothole on the main road causing traffic delays.",Roads
+"The newly built road is already cracking and damaged.",Roads
+"Need a speed breaker near the school zone, cars are driving too fast.",Roads
+"Traffic signal is not working at the main intersection.",Roads
+"Garbage truck hasn't collected waste for a week.",Sanitation
+"There is a huge pile of garbage dumped in the empty lot.",Sanitation
+"Public toilet near the market is extremely unhygienic and smells terrible.",Sanitation
+"People are throwing waste into the open drain, clogging it completely.",Sanitation
+"A large tree fell down during the storm and is blocking the park entrance.",Public Works
+"The public park equipment is rusted and broken, unsafe for children.",Public Works
+"Municipal workers left construction material on the footpath.",Public Works
+"The pavement tiles are completely broken.",Public Works
+"I was charged double the amount on my water bill this month.",Billing
+"My payment failed but the money was deducted from my account.",Billing
+"Incorrect meter reading resulted in a massive electricity bill.",Billing
+"Need a refund for the excess penalty charged to me.",Billing
+"I cannot log into the grievance portal, it shows an error.",Tech Support
+"The mobile app crashes every time I try to upload a photo.",Tech Support
+"Website is down, getting a 500 internal server error.",Tech Support
+"I forgot my password and the OTP is not coming to my email.",Tech Support
+"Half the street is in darkness because the lamps are fused.",Electricity
+"Brown water is coming out of our kitchen tap.",Water Supply
+"The divider on the highway is broken and causing accidents.",Roads
+"Nobody is sweeping the street, dust everywhere.",Sanitation
+"Street dogs have scattered garbage all over the road.",Sanitation
+"The bench in the community garden is broken.",Public Works
+"Can someone fix the login page? It is very slow.",Tech Support

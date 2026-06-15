@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { io } from 'socket.io-client';
+import { toast } from 'react-hot-toast';
 import { MapPin, Camera, CheckCircle, Clock, AlertTriangle, Navigation, Upload, HardHat, Play } from 'lucide-react';
 import AuditLogPanel from '../components/AuditLogPanel';
 
@@ -31,12 +32,20 @@ export default function FieldWorkerDashboard() {
         finally { setLoading(false); }
     };
 
+
     useEffect(() => {
         fetchAssigned();
         const socket = io(__API_BASE__);
-        socket.on('new_complaint_processed', fetchAssigned);
+        socket.on('new_complaint_processed', (data) => {
+            // Check if it's assigned to this worker or if the list just needs a refresh
+            // Since the event is broadcasted, we just refresh. We can check if it's assigned to this worker.
+            if (data.assignedTo === user?.id || data.assignedTo === user?._id) {
+                toast.success(`New task assigned to you!`, { position: 'top-right' });
+            }
+            fetchAssigned();
+        });
         return () => socket.disconnect();
-    }, [token]);
+    }, [token, user]);
 
     const handleGetGps = () => {
         setGpsError('');

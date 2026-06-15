@@ -3,7 +3,7 @@ import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
 import { Bell, CheckCircle, AlertTriangle, MessageSquare, Star, X, Mail, Phone, ToggleLeft, ToggleRight } from 'lucide-react';
 
-const MOCK_NOTIFICATIONS = [
+export const MOCK_NOTIFICATIONS = [
     { id: 1, type: 'status', title: 'Complaint CMP-20260224-1421 Updated', message: 'Your complaint has been assigned to Field Worker Rajesh Kumar.', time: '2 hours ago', read: false, icon: CheckCircle, color: '#10b981' },
     { id: 2, type: 'escalation', title: 'SLA Escalation Alert', message: 'Complaint CMP-20260223-0932 has been escalated due to SLA breach. A senior officer has been notified.', time: '5 hours ago', read: false, icon: AlertTriangle, color: '#ef4444' },
     { id: 3, type: 'comment', title: 'Officer Comment Added', message: 'Officer Priya Singh commented: "Team dispatched. Issue will be resolved within 2 hours."', time: '1 day ago', read: false, icon: MessageSquare, color: '#3b82f6' },
@@ -11,9 +11,8 @@ const MOCK_NOTIFICATIONS = [
     { id: 5, type: 'status', title: 'Complaint Resolved', message: 'Great news! Your water supply complaint CMP-20260220-0211 has been successfully resolved.', time: '4 days ago', read: true, icon: CheckCircle, color: '#059669' },
 ];
 
-export default function Notifications({ unreadCount, setUnreadCount, profile }) {
+export default function Notifications({ notifications, setNotifications, unreadCount, setUnreadCount, profile }) {
     const { token } = useContext(AuthContext);
-    const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
     const [prefs, setPrefs] = useState({ notifyEmail: profile?.notifyEmail ?? true, notifySMS: profile?.notifySMS ?? false });
     const [savingPrefs, setSavingPrefs] = useState(false);
     const [prefsSaved, setPrefsSaved] = useState(false);

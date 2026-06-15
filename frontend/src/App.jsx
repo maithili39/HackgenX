@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useContext } from 'react';
 import PropTypes from 'prop-types';
+import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -47,6 +48,7 @@ function App() {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', zIndex: 0 }}>
+            <Toaster position="top-right" />
             {!isDashboard && (
                 <>
                     <div className="mesh-bg-top animate-fade-in" />

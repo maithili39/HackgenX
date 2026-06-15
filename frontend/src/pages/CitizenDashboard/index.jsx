@@ -5,12 +5,14 @@ import Overview from './Overview';
 import Profile from './Profile';
 import MapView from './MapView';
 import Analytics from './Analytics';
-import Notifications from './Notifications';
+import Notifications, { MOCK_NOTIFICATIONS } from './Notifications';
 import FeedbackRating from './FeedbackRating';
 import InfraHealth from './InfraHealth';
 import SubmitComplaintSection from './SubmitComplaintSection';
 import AIAssistantWidget from '../../components/AIAssistantWidget';
 import axios from 'axios';
+import { io } from 'socket.io-client';
+import toast from 'react-hot-toast';
 import {
     LayoutDashboard, User, Map, BarChart2, Bell, Star, Activity,
     LogOut, ChevronLeft, ChevronRight, ClipboardList, Menu, X, FilePlus
@@ -49,6 +51,7 @@ export default function CitizenDashboard() {
     const [activeSection, setActiveSection] = useState(initialSection);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
     const [unreadCount, setUnreadCount] = useState(3);
     const [profile, setProfile] = useState(null);
 
@@ -58,6 +61,30 @@ export default function CitizenDashboard() {
             headers: { Authorization: `Bearer ${token}` }
         }).then(r => setProfile(r.data)).catch(() => { });
     }, [token]);
+
+    useEffect(() => {
+        if (!user) return;
+        const socket = io(__API_BASE__);
+        socket.on(`complaint_updated_${user.id}`, (updated) => {
+            toast.success(`Complaint status changed to: ${updated.status}`, {
+                icon: '🔄',
+                style: { borderRadius: '10px', background: '#333', color: '#fff' }
+            });
+            // Also add to notifications list
+            setNotifications(prev => [{
+                id: Date.now(),
+                type: 'status',
+                title: `Complaint Updated: ${updated.status}`,
+                message: `Your complaint is now marked as ${updated.status}.`,
+                time: 'Just now',
+                read: false,
+                icon: Activity, // Using Activity icon from lucide-react
+                color: '#10b981'
+            }, ...prev]);
+            setUnreadCount(u => u + 1);
+        });
+        return () => socket.disconnect();
+    }, [user]);
 
     const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -73,7 +100,7 @@ export default function CitizenDashboard() {
             case 'profile': return <Profile profile={profile} onUpdate={setProfile} />;
             case 'map': return <MapView />;
             case 'analytics': return <Analytics />;
-            case 'notifications': return <Notifications unreadCount={unreadCount} setUnreadCount={setUnreadCount} profile={profile} />;
+            case 'notifications': return <Notifications notifications={notifications} setNotifications={setNotifications} unreadCount={unreadCount} setUnreadCount={setUnreadCount} profile={profile} />;
             case 'feedback': return <FeedbackRating />;
             case 'health': return <InfraHealth />;
             default: return <SubmitComplaintSection onSuccess={() => setActiveSection('overview')} />;

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
+import { toast } from 'react-hot-toast';
 import { AlertTriangle, X, Clock } from 'lucide-react';
 
 const PRIORITY_COLORS = { P0: '#ef4444', P1: '#f59e0b', P2: '#3b82f6', P3: '#10b981' };
@@ -8,6 +9,7 @@ const ESCALATION_LABELS = ['Normal', 'Officer Level', 'Commissioner Level', 'Cri
 export default function SLAAlertPanel() {
     const [alerts, setAlerts] = useState([]);
     const [dismissed, setDismissed] = useState(new Set());
+
 
     useEffect(() => {
         const socket = io(__API_BASE__);
@@ -19,6 +21,7 @@ export default function SLAAlertPanel() {
                 }
                 return [{ ...alert, receivedAt: new Date() }, ...prev.slice(0, 19)];
             });
+            toast.error(`⚠️ SLA Breach Alert: Complaint ${alert.complaintId} (${alert.department})`, { position: 'top-right' });
         });
         return () => socket.disconnect();
     }, []);
