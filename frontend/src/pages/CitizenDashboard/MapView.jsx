@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useRef, useContext } from 'react';
 import api from '../../api/axios.js';
 import { AuthContext } from '../../context/AuthContext';
 import { Map, Layers, ZoomIn, Loader2 } from 'lucide-react';
@@ -42,6 +42,8 @@ export default function MapView() {
     const [showHeatmap, setShowHeatmap] = useState(false);
     const [filterStatus, setFilterStatus] = useState('All');
 
+    const mapRef = useRef(null);
+
     const { isLoaded, loadError } = useJsApiLoader({
         id: 'google-map-script',
         googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -63,25 +65,33 @@ export default function MapView() {
         return true;
     });
 
-    const handleMapLoad = (map) => {
-        const fallbackToPins = () => {
-            if (filtered.length > 0) {
-                const bounds = new window.google.maps.LatLngBounds();
-                filtered.forEach(c => bounds.extend({ lat: c.location.lat, lng: c.location.lng }));
-                map.fitBounds(bounds);
-            }
-        };
+    const fitToComplaints = (map, pins) => {
+        if (!map || pins.length === 0) return false;
+        const bounds = new window.google.maps.LatLngBounds();
+        pins.forEach(c => bounds.extend({ lat: c.location.lat, lng: c.location.lng }));
+        map.fitBounds(bounds);
+        if (pins.length === 1) map.setZoom(15);
+        return true;
+    };
 
-        const handleFallback = () => {
+    const handleMapLoad = (map) => {
+        mapRef.current = map;
+        // If complaints already loaded by the time the map mounts, fit to them immediately.
+        // Otherwise the re-fit useEffect below will handle it once complaints arrive.
+        const pins = complaints.filter(c => c.location?.lat && c.location?.lng);
+        if (fitToComplaints(map, pins)) return;
+
+        // No complaints yet — center on user location while API call is in-flight
+        const fallbackToIp = () => {
             fetch('https://ipapi.co/json/')
                 .then(r => r.json())
                 .then(data => {
                     if (data.latitude && data.longitude) {
                         map.panTo({ lat: data.latitude, lng: data.longitude });
                         map.setZoom(12);
-                    } else fallbackToPins();
+                    }
                 })
-                .catch(() => fallbackToPins());
+                .catch(() => {});
         };
 
         if (navigator.geolocation) {
@@ -90,12 +100,20 @@ export default function MapView() {
                     map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
                     map.setZoom(13);
                 },
-                () => handleFallback()
+                () => fallbackToIp(),
+                { timeout: 5000 }
             );
         } else {
-            handleFallback();
+            fallbackToIp();
         }
     };
+
+    // Re-fit map bounds whenever complaints finish loading
+    useEffect(() => {
+        if (!mapRef.current || !isLoaded) return;
+        const pins = complaints.filter(c => c.location?.lat && c.location?.lng);
+        fitToComplaints(mapRef.current, pins);
+    }, [complaints, isLoaded]);
 
     return (
         <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
