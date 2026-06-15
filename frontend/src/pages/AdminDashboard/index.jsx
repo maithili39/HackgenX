@@ -4,11 +4,15 @@ import HeatmapPanel from './HeatmapPanel';
 import SLAAlertPanel from './SLAAlertPanel';
 import DeptStatsPanel from './DeptStatsPanel';
 import DeptMappingPanel from './DeptMappingPanel';
-import { ShieldAlert, BarChart3, Settings, Map } from 'lucide-react';
+import UserManagementPanel from './UserManagementPanel';
+import WardManagementPanel from './WardManagementPanel';
+import { ShieldAlert, BarChart3, Settings, Map, Users, MapPin } from 'lucide-react';
 
 const TABS = [
     { id: 'live', label: 'Live Overview', icon: Map },
     { id: 'dept', label: 'Department Stats', icon: BarChart3 },
+    { id: 'users', label: 'User Management', icon: Users },
+    { id: 'wards', label: 'Ward Management', icon: MapPin },
     { id: 'mapping', label: 'Mapping Config', icon: Settings },
 ];
 
@@ -70,6 +74,8 @@ export default function AdminDashboard() {
                 </div>
             )}
             {activeTab === 'dept' && <DeptStatsPanel />}
+            {activeTab === 'users' && <UserManagementPanel />}
+            {activeTab === 'wards' && <WardManagementPanel />}
             {activeTab === 'mapping' && <DeptMappingPanel />}
         </div>
     );

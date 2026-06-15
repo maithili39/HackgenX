@@ -33,11 +33,14 @@ app.use((req, res, next) => {
     next();
 });
 
+import userRoutes from './routes/users.js';
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/wards', wardRoutes);
 app.use('/api/ai', aiRoutes);  // AI features: chatbot + summarizer
+app.use('/api/users', userRoutes);
 
 // MongoDB Connect
 mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/civicsense')

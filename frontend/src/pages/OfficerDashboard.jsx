@@ -25,7 +25,7 @@ export default function OfficerDashboard() {
         try {
             const [cRes, wRes] = await Promise.all([
                 axios.get(`${__API_BASE__}/api/complaints/all`, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get(`${__API_BASE__}/api/auth/field-workers`, { headers: { Authorization: `Bearer ${token}` } })
+                axios.get(`${__API_BASE__}/api/users/workers`, { headers: { Authorization: `Bearer ${token}` } })
             ]);
             setComplaints(cRes.data);
             setWorkers(wRes.data);
