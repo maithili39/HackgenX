@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
-import { io } from 'socket.io-client';
 import { toast } from 'react-hot-toast';
+import { useSocket } from '../hooks/useSocket';
 import { AuthContext } from '../context/AuthContext';
 import { Crown, AlertTriangle, TrendingUp, Star, ChevronUp, ChevronDown } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -30,14 +30,15 @@ export default function CommissionerDashboard() {
 
     useEffect(() => {
         fetchStats();
-        const socket = io(__API_BASE__);
-        socket.on('sla_breach', (alert) => {
+    }, [token]);
+
+    useSocket({
+        'sla_breach': (alert) => {
             setSlaAlerts(prev => [alert, ...prev.slice(0, 9)]);
             toast.error(`⚠️ SLA Breach: Complaint ${alert.complaintId} by ${alert.department}`, { position: 'top-right' });
-        });
-        socket.on('new_complaint_processed', fetchStats);
-        return () => socket.disconnect();
-    }, [token]);
+        },
+        'new_complaint_processed': fetchStats
+    });
 
     const totalComplaints = complaints.length;
     const totalResolved = complaints.filter(c => ['Resolved', 'Closed'].includes(c.status)).length;

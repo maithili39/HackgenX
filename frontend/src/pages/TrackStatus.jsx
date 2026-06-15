@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { io } from 'socket.io-client';
+import { useSocket } from '../hooks/useSocket';
 import { Clock, Search, CheckCircle, ThumbsUp, ThumbsDown, MapPin, Shield } from 'lucide-react';
 import AuditLogPanel from '../components/AuditLogPanel';
 
@@ -19,15 +19,12 @@ export default function TrackStatus() {
     const [feedbackMsg, setFeedbackMsg] = useState('');
     const { token, user } = useContext(AuthContext);
 
-    useEffect(() => {
-        if (!token || !user) return;
-        const socket = io(__API_BASE__);
-        socket.on(`complaint_updated_${user.id}`, (updated) => {
+    useSocket((token && user) ? {
+        [`complaint_updated_${user.id}`]: (updated) => {
             if (complaint && updated._id === complaint._id) setComplaint(updated);
             fetchMyComplaints();
-        });
-        return () => socket.disconnect();
-    }, [token, user, complaint]);
+        }
+    } : {});
 
     const fetchMyComplaints = async () => {
         try {

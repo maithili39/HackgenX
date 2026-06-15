@@ -11,8 +11,8 @@ import InfraHealth from './InfraHealth';
 import SubmitComplaintSection from './SubmitComplaintSection';
 import AIAssistantWidget from '../../components/AIAssistantWidget';
 import axios from 'axios';
-import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
+import { useSocket } from '../../hooks/useSocket';
 import {
     LayoutDashboard, User, Map, BarChart2, Bell, Star, Activity,
     LogOut, ChevronLeft, ChevronRight, ClipboardList, Menu, X, FilePlus
@@ -62,10 +62,8 @@ export default function CitizenDashboard() {
         }).then(r => setProfile(r.data)).catch(() => { });
     }, [token]);
 
-    useEffect(() => {
-        if (!user) return;
-        const socket = io(__API_BASE__);
-        socket.on(`complaint_updated_${user.id}`, (updated) => {
+    useSocket(user ? {
+        [`complaint_updated_${user.id}`]: (updated) => {
             toast.success(`Complaint status changed to: ${updated.status}`, {
                 icon: '🔄',
                 style: { borderRadius: '10px', background: '#333', color: '#fff' }
@@ -82,9 +80,8 @@ export default function CitizenDashboard() {
                 color: '#10b981'
             }, ...prev]);
             setUnreadCount(u => u + 1);
-        });
-        return () => socket.disconnect();
-    }, [user]);
+        }
+    } : {});
 
     const handleLogout = () => { logout(); navigate('/login'); };
 

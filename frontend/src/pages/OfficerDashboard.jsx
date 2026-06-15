@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
-import { io } from 'socket.io-client';
 import { toast } from 'react-hot-toast';
+import { useSocket } from '../hooks/useSocket';
 import { AuthContext } from '../context/AuthContext';
 import { BadgeCheck, AlertTriangle, Users, ChevronDown, Clock, MapPin, Image, ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react';
 import AuditLogPanel from '../components/AuditLogPanel';
@@ -37,17 +37,18 @@ export default function OfficerDashboard() {
 
     useEffect(() => {
         fetchData();
-        const socket = io(__API_BASE__);
-        socket.on('new_complaint_processed', (data) => {
+    }, [token]);
+
+    useSocket({
+        'new_complaint_processed': (data) => {
             fetchData();
             toast.success(`New complaint routed to your department: ${data.department}`, { position: 'top-right' });
-        });
-        socket.on('sla_breach', (data) => {
+        },
+        'sla_breach': (data) => {
             fetchData();
             toast.error(`⚠️ SLA Breach: Complaint ${data.complaintId} exceeded limit!`, { position: 'top-right' });
-        });
-        return () => socket.disconnect();
-    }, [token]);
+        }
+    });
 
     const handleAssign = async () => {
         if (!assigningTo) { setAssignMsg('Select a field worker first.'); return; }

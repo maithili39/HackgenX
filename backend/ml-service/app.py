@@ -28,10 +28,8 @@ app.add_middleware(
 )
 
 # ─── Model Loading ─────────────────────────────────────────────────────────────
-dept_model = None
-dept_tokenizer = None
+dept_classifier = None
 emotion_pipeline = None
-DEPT_MODEL_PATH = "./dept_model"
 
 EMOTION_MAP = {
     "anger":    "Angry",
@@ -45,18 +43,15 @@ EMOTION_MAP = {
 
 print("[ML Service] Loading models...")
 
-# Try to load fine-tuned DistilBERT department model
-if os.path.exists(DEPT_MODEL_PATH):
-    try:
-        from transformers import DistilBertTokenizerFast, DistilBertForSequenceClassification
-        dept_tokenizer = DistilBertTokenizerFast.from_pretrained(DEPT_MODEL_PATH)
-        dept_model = DistilBertForSequenceClassification.from_pretrained(DEPT_MODEL_PATH)
-        dept_model.eval()
-        print(f"[ML Service] Department model loaded from '{DEPT_MODEL_PATH}'")
-    except Exception as e:
-        print(f"[ML Service] WARN: Could not load dept model: {e} - using keyword fallback")
-else:
-    print(f"[ML Service] WARN: '{DEPT_MODEL_PATH}' not found - using keyword fallback for departments")
+try:
+    from transformers import pipeline
+    dept_classifier = pipeline(
+        "zero-shot-classification", 
+        model="typeform/distilbert-base-uncased-mnli"
+    )
+    print("[ML Service] Zero-shot classifier loaded (typeform/distilbert-base-uncased-mnli)")
+except Exception as e:
+    print(f"[ML Service] WARN: Could not load zero-shot model: {e} - using keyword fallback")
 
 # Try to load emotion/sentiment pipeline from HuggingFace
 try:
@@ -151,22 +146,12 @@ def rule_based_sentiment(text: str) -> str:
 
 # ─── Core Prediction Functions ─────────────────────────────────────────────────
 def predict_department(text: str) -> tuple[str, float]:
-    """Returns (department_label, confidence)"""
-    if dept_model is not None and dept_tokenizer is not None:
+    candidate_labels = ["Electricity", "Water Supply", "Roads", "Sanitation", "Public Works", "Billing", "Tech Support"]
+    if dept_classifier is not None:
         try:
-            inputs = dept_tokenizer(
-                text,
-                return_tensors="pt",
-                truncation=True,
-                padding=True,
-                max_length=128,
-            )
-            with torch.no_grad():
-                outputs = dept_model(**inputs)
-                probs = torch.softmax(outputs.logits, dim=1)
-                predicted_id = torch.argmax(probs, dim=1).item()
-                confidence = probs[0][predicted_id].item()
-            label = dept_model.config.id2label[predicted_id]
+            result = dept_classifier(text, candidate_labels)
+            label = result['labels'][0]
+            confidence = result['scores'][0]
             return label, round(confidence, 3)
         except Exception as e:
             print(f"[predict_department] error: {e}")
@@ -208,7 +193,7 @@ class PredictResponse(BaseModel):
 def health():
     return {
         "status": "running",
-        "dept_model_loaded": dept_model is not None,
+        "dept_model_loaded": dept_classifier is not None,
         "emotion_model_loaded": emotion_pipeline is not None,
     }
 
@@ -229,8 +214,8 @@ def predict(req: PredictRequest):
     sent, sent_conf = predict_sentiment(text)
 
     model_flags = []
-    if dept_model is not None:
-        model_flags.append("distilbert-dept")
+    if dept_classifier is not None:
+        model_flags.append("zero-shot-dept")
     else:
         model_flags.append("keyword-dept")
     if emotion_pipeline is not None:

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { io } from 'socket.io-client';
 import { toast } from 'react-hot-toast';
+import { useSocket } from '../../hooks/useSocket';
 import { AlertTriangle, X, Clock } from 'lucide-react';
 
 const PRIORITY_COLORS = { P0: '#ef4444', P1: '#f59e0b', P2: '#3b82f6', P3: '#10b981' };
@@ -11,9 +11,8 @@ export default function SLAAlertPanel() {
     const [dismissed, setDismissed] = useState(new Set());
 
 
-    useEffect(() => {
-        const socket = io(__API_BASE__);
-        socket.on('sla_breach', (alert) => {
+    useSocket({
+        'sla_breach': (alert) => {
             setAlerts(prev => {
                 const exists = prev.find(a => a._id === alert._id);
                 if (exists) {
@@ -22,9 +21,8 @@ export default function SLAAlertPanel() {
                 return [{ ...alert, receivedAt: new Date() }, ...prev.slice(0, 19)];
             });
             toast.error(`⚠️ SLA Breach Alert: Complaint ${alert.complaintId} (${alert.department})`, { position: 'top-right' });
-        });
-        return () => socket.disconnect();
-    }, []);
+        }
+    });
 
     const visible = alerts.filter(a => !dismissed.has(a._id));
 
