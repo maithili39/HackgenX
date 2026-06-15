@@ -121,7 +121,10 @@ export default function SubmitComplaintSection({ onSuccess }) {
             );
             setSuccessData(res.data.complaint);
             setDetectedWard(null);
-        } catch { alert('Error submitting complaint. Please try again.'); }
+        } catch (err) { 
+            const msg = err.response?.data?.message || 'Error submitting complaint. Please try again.';
+            alert(msg); 
+        }
         finally { setIsSubmitting(false); }
     };
 
@@ -235,20 +238,32 @@ export default function SubmitComplaintSection({ onSuccess }) {
                                     border: '1px solid rgba(16,185,129,0.2)',
                                     display: 'flex',
                                     alignItems: 'flex-start',
+                                    justifyContent: 'space-between',
                                     gap: '0.5rem',
                                 }}>
-                                    {isSummarizing
-                                        ? <Loader2 size={14} color="#10b981" style={{ flexShrink: 0, marginTop: 2, animation: 'spin 1s linear infinite' }} />
-                                        : <FileText size={14} color="#10b981" style={{ flexShrink: 0, marginTop: 2 }} />
-                                    }
-                                    <div>
-                                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                            AI Summary
-                                        </span>
-                                        <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                                            {isSummarizing ? 'Generating summary…' : smartSummaryText}
-                                        </p>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                                        {isSummarizing
+                                            ? <Loader2 size={14} color="#10b981" style={{ flexShrink: 0, marginTop: 2, animation: 'spin 1s linear infinite' }} />
+                                            : <FileText size={14} color="#10b981" style={{ flexShrink: 0, marginTop: 2 }} />
+                                        }
+                                        <div>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                AI Summary
+                                            </span>
+                                            <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                                {isSummarizing ? 'Generating summary…' : smartSummaryText}
+                                            </p>
+                                        </div>
                                     </div>
+                                    {!isSummarizing && smartSummaryText && (
+                                        <button 
+                                            type="button" 
+                                            onClick={() => { setFormData(prev => ({ ...prev, description: smartSummaryText })); setSmartSummaryText(''); }}
+                                            style={{ padding: '0.3rem 0.75rem', background: '#10b981', color: 'white', border: 'none', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
+                                        >
+                                            Apply
+                                        </button>
+                                    )}
                                 </div>
                             )}
 

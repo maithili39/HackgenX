@@ -202,11 +202,11 @@ router.post('/', authMiddleware, async (req, res) => {
         const complaintId = `CMP-${datePart}-${randomPart}`;
 
         // Check for duplicate
-        let isDuplicate = false;
-        let duplicateOf = null;
         if (location?.lat && location?.lng) {
             const dup = await findDuplicate(location.lat, location.lng, description);
-            if (dup) { isDuplicate = true; duplicateOf = dup._id; }
+            if (dup) {
+                return res.status(409).json({ message: 'Duplicate complaint detected in this area. We are already looking into it.' });
+            }
         }
 
         const newComplaint = new Complaint({
@@ -220,8 +220,6 @@ router.post('/', authMiddleware, async (req, res) => {
             photo: photo || null,
             location: location || null,
             beforePhoto: photo || null,
-            isDuplicate,
-            duplicateOf,
             auditLog: [{
                 action: 'Complaint Submitted',
                 performedBy: name,
