@@ -15,7 +15,7 @@ import toast from 'react-hot-toast';
 import { useSocket } from '../../hooks/useSocket';
 import {
     LayoutDashboard, User, Map, BarChart2, Bell, Star, Activity,
-    LogOut, ChevronLeft, ChevronRight, ClipboardList, Menu, X, FilePlus
+    LogOut, ChevronLeft, ChevronRight, ClipboardList, Menu, X, FilePlus, Home
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -192,6 +192,11 @@ export default function CitizenDashboard() {
                         style={{ display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'space-between', gap: '0.5rem', padding: '0.6rem 0.75rem', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.04)', color: '#64748b', width: '100%', fontSize: '0.82rem' }}>
                         {!sidebarCollapsed && <span>Collapse</span>}
                         {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                    </button>
+                    <button onClick={() => navigate('/')}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: '#94a3b8', fontSize: '0.88rem', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', width: '100%' }}>
+                        <Home size={18} />
+                        {!sidebarCollapsed && 'Back to Website'}
                     </button>
                     <button onClick={handleLogout}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: '#94a3b8', fontSize: '0.88rem', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', width: '100%' }}>
