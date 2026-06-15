@@ -28,7 +28,10 @@ async function getFetchImpl() {
 
 // ─── Auth Middleware ────────────────────────────────────────────────────────
 const authMiddleware = (req, res, next) => {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    let token = req.cookies?.accessToken;
+    if (!token && req.header('Authorization')) {
+        token = req.header('Authorization').replace('Bearer ', '');
+    }
     if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
     try {
         req.user = jwt.verify(token, JWT_SECRET);

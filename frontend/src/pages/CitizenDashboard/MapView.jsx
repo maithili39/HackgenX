@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../../api/axios.js';
 import { AuthContext } from '../../context/AuthContext';
 import { Map, Layers, ZoomIn, Loader2 } from 'lucide-react';
 import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
@@ -34,7 +34,7 @@ const DARK_MAP_STYLES = [
 ];
 
 export default function MapView() {
-    const { token } = useContext(AuthContext);
+    const { user } = useContext(AuthContext);
     const [complaints, setComplaints] = useState([]);
     const [selected, setSelected] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -46,13 +46,11 @@ export default function MapView() {
     });
 
     useEffect(() => {
-        if (!token) return;
-        axios.get(`${__API_BASE__}/api/complaints/nearby`, {
-            headers: { Authorization: `Bearer ${token}` }
-        }).then(r => setComplaints(r.data))
+        if (!user) return;
+        api.get(`/api/complaints/nearby`).then(r => setComplaints(r.data))
             .catch(() => { })
             .finally(() => setLoading(false));
-    }, [token]);
+    }, []);
 
     const withLocation = complaints.filter(c => c.location?.lat && c.location?.lng);
     const filtered = filterStatus === 'All' ? withLocation : withLocation.filter(c => {
@@ -74,9 +72,9 @@ export default function MapView() {
                     {['All', 'Resolved', 'In Progress', 'Escalated'].map(s => (
                         <button key={s} onClick={() => setFilterStatus(s)}
                             style={{
-                                padding: '0.4rem 0.9rem', borderRadius: 100, border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, transition: 'all 0.2s',
-                                background: filterStatus === s ? '#0284c7' : 'var(--bg-panel)', color: filterStatus === s ? 'white' : 'var(--text-secondary)',
-                                boxShadow: filterStatus === s ? '0 2px 8px rgba(2,132,199,0.3)' : 'var(--shadow-sm)', border: '1px solid var(--border-color)'
+                                 padding: '0.4rem 0.9rem', borderRadius: 100, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, transition: 'all 0.2s',
+                                 background: filterStatus === s ? '#0284c7' : 'var(--bg-panel)', color: filterStatus === s ? 'white' : 'var(--text-secondary)',
+                                 boxShadow: filterStatus === s ? '0 2px 8px rgba(2,132,199,0.3)' : 'var(--shadow-sm)', border: filterStatus === s ? 'none' : '1px solid var(--border-color)'
                             }}>
                             {s}
                         </button>

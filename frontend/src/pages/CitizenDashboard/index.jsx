@@ -10,7 +10,7 @@ import FeedbackRating from './FeedbackRating';
 import InfraHealth from './InfraHealth';
 import SubmitComplaintSection from './SubmitComplaintSection';
 import AIAssistantWidget from '../../components/AIAssistantWidget';
-import axios from 'axios';
+import api from '../../api/axios.js';
 import toast from 'react-hot-toast';
 import { useSocket } from '../../hooks/useSocket';
 import {
@@ -41,7 +41,7 @@ const SECTION_TITLES = {
 };
 
 export default function CitizenDashboard() {
-    const { user, logout, token } = useContext(AuthContext);
+    const { user, logout, } = useContext(AuthContext);
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -56,11 +56,9 @@ export default function CitizenDashboard() {
     const [profile, setProfile] = useState(null);
 
     useEffect(() => {
-        if (!token) return;
-        axios.get(`${__API_BASE__}/api/auth/me`, {
-            headers: { Authorization: `Bearer ${token}` }
-        }).then(r => setProfile(r.data)).catch(() => { });
-    }, [token]);
+        if (!user) return;
+        api.get(`/api/auth/me`).then(r => setProfile(r.data)).catch(() => { });
+    }, []);
 
     useSocket(user ? {
         [`complaint_updated_${user.id}`]: (updated) => {

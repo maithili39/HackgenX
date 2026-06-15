@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useContext } from 'react';
+import React, { useContext, lazy, Suspense } from 'react';
 import PropTypes from 'prop-types';
 import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
@@ -8,21 +8,36 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import TrackStatus from './pages/TrackStatus';
-import AdminDashboard from './pages/AdminDashboard';
-import FieldWorkerDashboard from './pages/FieldWorkerDashboard';
-import OfficerDashboard from './pages/OfficerDashboard';
-import CommissionerDashboard from './pages/CommissionerDashboard';
-import CitizenDashboard from './pages/CitizenDashboard';
 import { AuthContext } from './context/AuthContext';
-import axios from 'axios';
+import api from './api/axios.js';
 import toast from 'react-hot-toast';
+import * as Sentry from "@sentry/react";
 
-// Global Axios Interceptor for Session Expiry (401)
-axios.interceptors.response.use(
+Sentry.init({
+  dsn: import.meta.env.VITE_SENTRY_DSN || "",
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration(),
+  ],
+  tracesSampleRate: 1.0,
+  tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+});
+
+// Lazy load dashboard pages for code-splitting
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const FieldWorkerDashboard = lazy(() => import('./pages/FieldWorkerDashboard'));
+const OfficerDashboard = lazy(() => import('./pages/OfficerDashboard'));
+const CommissionerDashboard = lazy(() => import('./pages/CommissionerDashboard'));
+const CitizenDashboard = lazy(() => import('./pages/CitizenDashboard'));
+
+// Global Interceptor for Session Expiry (401 after refresh failed)
+api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response && error.response.status === 401) {
-            localStorage.removeItem('token');
+        // If error is 401 and we've already tried to refresh (or refresh failed)
+        if (error.response && error.response.status === 401 && error.config._retry) {
             if (window.location.pathname !== '/login') {
                 toast.error('Session expired. Please log in again.');
                 window.location.href = '/login';
@@ -76,54 +91,56 @@ function App() {
             <main
                 className={isDashboard ? '' : 'main-content container'}
                 style={{ flex: 1, paddingBottom: isDashboard ? 0 : '4rem' }}>
-                <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
+                <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>}>
+                    <Routes>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
 
-                    {/* Citizen Routes */}
-                    <Route path="/submit" element={<Navigate to="/dashboard" state={{ openSection: 'submit' }} replace />} />
-                    <Route path="/track" element={
-                        <ProtectedRoute allowedRoles={['citizen']}>
-                            <TrackStatus />
-                        </ProtectedRoute>
-                    } />
-                    <Route path="/dashboard" element={
-                        <ProtectedRoute allowedRoles={['citizen']}>
-                            <CitizenDashboard />
-                        </ProtectedRoute>
-                    } />
+                        {/* Citizen Routes */}
+                        <Route path="/submit" element={<Navigate to="/dashboard" state={{ openSection: 'submit' }} replace />} />
+                        <Route path="/track" element={
+                            <ProtectedRoute allowedRoles={['citizen']}>
+                                <TrackStatus />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/dashboard" element={
+                            <ProtectedRoute allowedRoles={['citizen']}>
+                                <CitizenDashboard />
+                            </ProtectedRoute>
+                        } />
 
-                    {/* Admin Route */}
-                    <Route path="/admin" element={
-                        <ProtectedRoute allowedRoles={['admin']}>
-                            <AdminDashboard />
-                        </ProtectedRoute>
-                    } />
+                        {/* Admin Route */}
+                        <Route path="/admin" element={
+                            <ProtectedRoute allowedRoles={['admin']}>
+                                <AdminDashboard />
+                            </ProtectedRoute>
+                        } />
 
-                    {/* Field Worker Route */}
-                    <Route path="/field-worker" element={
-                        <ProtectedRoute allowedRoles={['field_worker']}>
-                            <FieldWorkerDashboard />
-                        </ProtectedRoute>
-                    } />
+                        {/* Field Worker Route */}
+                        <Route path="/field-worker" element={
+                            <ProtectedRoute allowedRoles={['field_worker']}>
+                                <FieldWorkerDashboard />
+                            </ProtectedRoute>
+                        } />
 
-                    {/* Officer Route */}
-                    <Route path="/officer" element={
-                        <ProtectedRoute allowedRoles={['officer']}>
-                            <OfficerDashboard />
-                        </ProtectedRoute>
-                    } />
+                        {/* Officer Route */}
+                        <Route path="/officer" element={
+                            <ProtectedRoute allowedRoles={['officer']}>
+                                <OfficerDashboard />
+                            </ProtectedRoute>
+                        } />
 
-                    {/* Commissioner Route */}
-                    <Route path="/commissioner" element={
-                        <ProtectedRoute allowedRoles={['commissioner']}>
-                            <CommissionerDashboard />
-                        </ProtectedRoute>
-                    } />
+                        {/* Commissioner Route */}
+                        <Route path="/commissioner" element={
+                            <ProtectedRoute allowedRoles={['commissioner']}>
+                                <CommissionerDashboard />
+                            </ProtectedRoute>
+                        } />
 
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                </Suspense>
             </main>
             {!isDashboard && <Footer />}
         </div>

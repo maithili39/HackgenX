@@ -1,10 +1,10 @@
 import { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../../api/axios.js';
 import { AuthContext } from '../../context/AuthContext';
 import { Map, MapPin, Plus, Trash2, Edit2, CheckCircle } from 'lucide-react';
 
 export default function WardManagementPanel() {
-    const { token } = useContext(AuthContext);
+    
     const [wards, setWards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
@@ -13,9 +13,7 @@ export default function WardManagementPanel() {
 
     const fetchWards = async () => {
         try {
-            const res = await axios.get(`${__API_BASE__}/api/wards`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.get(`/api/wards`);
             setWards(res.data);
         } catch (err) {
             console.error('Error fetching wards:', err);
@@ -25,8 +23,8 @@ export default function WardManagementPanel() {
     };
 
     useEffect(() => {
-        if (token) fetchWards();
-    }, [token]);
+        if (user) fetchWards();
+    }, []);
 
     const handleSaveWard = async (e) => {
         e.preventDefault();
@@ -37,11 +35,9 @@ export default function WardManagementPanel() {
                 return { lat, lng };
             });
 
-            await axios.post(`${__API_BASE__}/api/wards`, {
+            await api.post(`/api/wards`, {
                 name: formData.name,
                 boundaries: parsedCoords
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
             });
             
             setIsAdding(false);

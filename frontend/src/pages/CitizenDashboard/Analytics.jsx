@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../../api/axios.js';
 import { AuthContext } from '../../context/AuthContext';
 import {
     LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
@@ -36,18 +36,16 @@ function InsightCard({ icon: Icon, title, value, subtitle, color }) {
 }
 
 export default function Analytics() {
-    const { token } = useContext(AuthContext);
+    
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!token) return;
-        axios.get(`${__API_BASE__}/api/complaints/citizen-stats`, {
-            headers: { Authorization: `Bearer ${token}` }
-        }).then(r => setStats(r.data))
+        if (!user) return;
+        api.get(`/api/complaints/citizen-stats`).then(r => setStats(r.data))
             .catch(() => { })
             .finally(() => setLoading(false));
-    }, [token]);
+    }, []);
 
     if (loading) return (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300, color: 'var(--text-muted)' }}>

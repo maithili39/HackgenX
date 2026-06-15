@@ -1,10 +1,10 @@
 import { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../../api/axios.js';
 import { AuthContext } from '../../context/AuthContext';
 import { Star, ThumbsUp, ThumbsDown, Camera, Send, AlertTriangle } from 'lucide-react';
 
 export default function FeedbackRating() {
-    const { token } = useContext(AuthContext);
+    
     const [complaints, setComplaints] = useState([]);
     const [selected, setSelected] = useState(null);
     const [rating, setRating] = useState(0);
@@ -17,10 +17,8 @@ export default function FeedbackRating() {
     const [autoEscalated, setAutoEscalated] = useState(false);
 
     useEffect(() => {
-        if (!token) return;
-        axios.get(`${__API_BASE__}/api/complaints/my-complaints`, {
-            headers: { Authorization: `Bearer ${token}` }
-        }).then(r => {
+        if (!user) return;
+        api.get(`/api/complaints/my-complaints`).then(r => {
             // Show resolved complaints pending citizen feedback (accepted or pending)
             const resolved = r.data.filter(c => ['Resolved', 'Closed'].includes(c.status));
             setComplaints(resolved);
@@ -28,7 +26,7 @@ export default function FeedbackRating() {
                 setSelected(resolved[0]);
             }
         }).catch(() => { });
-    }, [token]);
+    }, []);
 
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
@@ -46,10 +44,9 @@ export default function FeedbackRating() {
         try {
             // Submit feedback. If rating < 3 → reject & reopen (escalate)
             const feedbackType = satisfied === false || rating < 3 ? 'rejected' : 'accepted';
-            await axios.put(
-                `${__API_BASE__}/api/complaints/${selected._id}/feedback`,
-                { feedback: feedbackType, note: comment || `Rating: ${rating}/5` },
-                { headers: { Authorization: `Bearer ${token}` } }
+            await api.put(
+                `/api/complaints/${selected._id}/feedback`,
+                { feedback: feedbackType, note: comment || `Rating: ${rating}/5` }
             );
             setSubmitted(true);
             setAutoEscalated(willEscalate);

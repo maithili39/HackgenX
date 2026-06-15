@@ -1,23 +1,23 @@
 import mongoose from 'mongoose';
 
 const auditLogSchema = new mongoose.Schema({
-    action: { type: String, required: true },
-    performedBy: { type: String, required: true }, // user name or system
-    performedByRole: { type: String, default: 'system' },
-    note: { type: String, default: '' },
+    action: { type: String, required: true, maxlength: 100 },
+    performedBy: { type: String, required: true, maxlength: 100 }, // user name or system
+    performedByRole: { type: String, default: 'system', maxlength: 50 },
+    note: { type: String, default: '', maxlength: 500 },
     timestamp: { type: Date, default: Date.now }
 }, { _id: false });
 
 const complaintSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    complaintId: { type: String, required: true, unique: true },
-    name: { type: String, required: true },
-    contact: { type: String, required: true }, // Email or Phone
-    homeAddress: { type: String, required: true },
+    complaintId: { type: String, required: true, unique: true, maxlength: 50 },
+    name: { type: String, required: true, maxlength: 100 },
+    contact: { type: String, required: true, maxlength: 255 }, // Email or Phone
+    homeAddress: { type: String, required: true, maxlength: 500 },
 
     // Complaint Details
-    department: { type: String, default: 'Pending Analysis' },
-    description: { type: String, required: true },
+    department: { type: String, default: 'Pending Analysis', maxlength: 100 },
+    description: { type: String, required: true, maxlength: 2000 },
     photo: { type: String }, // URL or base64 string
     location: {
         lat: { type: Number },
@@ -55,14 +55,14 @@ const complaintSchema = new mongoose.Schema({
         enum: ['pending', 'accepted', 'rejected'],
         default: 'pending'
     },
-    feedbackNote: { type: String, default: '' },
+    feedbackNote: { type: String, default: '', maxlength: 500 },
 
     // Duplicate tracking
     isDuplicate: { type: Boolean, default: false },
     duplicateOf: { type: mongoose.Schema.Types.ObjectId, ref: 'Complaint', default: null },
 
     // Ward (auto-detected from GPS)
-    ward: { type: String, default: '' },
+    ward: { type: String, default: '', maxlength: 100 },
 
     // Status
     status: {
@@ -75,5 +75,12 @@ const complaintSchema = new mongoose.Schema({
     auditLog: { type: [auditLogSchema], default: [] }
 
 }, { timestamps: true });
+
+// Add MongoDB Indexes for Performance (Phase 10)
+complaintSchema.index({ userId: 1 });
+complaintSchema.index({ ward: 1 });
+complaintSchema.index({ status: 1 });
+complaintSchema.index({ createdAt: -1 });
+complaintSchema.index({ "location.lat": 1, "location.lng": 1 });
 
 export const Complaint = mongoose.model('Complaint', complaintSchema);

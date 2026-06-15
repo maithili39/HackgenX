@@ -1,10 +1,10 @@
 import { useState, useRef, useContext, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios.js';
 import { AuthContext } from '../../context/AuthContext';
 import { User, Mail, Phone, MapPin, Shield, Camera, Edit3, Check, X, Star, Calendar, FileText } from 'lucide-react';
 
 export default function Profile({ profile, onUpdate }) {
-    const { token } = useContext(AuthContext);
+    
     const [editing, setEditing] = useState(false);
     const [form, setForm] = useState({});
     const [saving, setSaving] = useState(false);
@@ -14,11 +14,11 @@ export default function Profile({ profile, onUpdate }) {
 
     useEffect(() => {
         if (profile) setForm({ name: profile.name, phone: profile.phone || '', ward: profile.ward || '', address: profile.address || '' });
-        if (token) {
-            axios.get(`${__API_BASE__}/api/complaints/my-complaints`, { headers: { Authorization: `Bearer ${token}` } })
+        if (user) {
+            api.get(`/api/complaints/my-complaints`)
                 .then(r => setComplaintCount(r.data.length)).catch(() => { });
         }
-    }, [profile, token]);
+    }, [profile]);
 
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
@@ -31,9 +31,7 @@ export default function Profile({ profile, onUpdate }) {
     const handleSave = async () => {
         setSaving(true); setMsg('');
         try {
-            const res = await axios.put(`${__API_BASE__}/api/auth/profile`, form, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.put(`/api/auth/profile`, form);
             onUpdate(res.data.user);
             setMsg('✓ Profile updated successfully!');
             setEditing(false);

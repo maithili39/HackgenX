@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../../api/axios.js';
 import { AuthContext } from '../../context/AuthContext';
 import {
     FileText, Clock, CheckCircle2, AlertTriangle, Timer, Tag,
@@ -77,7 +77,7 @@ function StatusProgress({ status }) {
 }
 
 export default function Overview({ onOpenFeedback }) {
-    const { token } = useContext(AuthContext);
+    
     const [stats, setStats] = useState({});
     const [complaints, setComplaints] = useState([]);
     const [filtered, setFiltered] = useState([]);
@@ -91,16 +91,16 @@ export default function Overview({ onOpenFeedback }) {
 
 
     useEffect(() => {
-        if (!token) return;
+        if (!user) return;
         Promise.all([
-            axios.get(`${__API_BASE__}/api/complaints/citizen-stats`, { headers: { Authorization: `Bearer ${token}` } }),
-            axios.get(`${__API_BASE__}/api/complaints/my-complaints`, { headers: { Authorization: `Bearer ${token}` } }),
+            api.get(`/api/complaints/citizen-stats`),
+            api.get(`/api/complaints/my-complaints`),
         ]).then(([statsRes, listRes]) => {
             setStats(statsRes.data);
             setComplaints(listRes.data);
             setFiltered(listRes.data);
         }).catch(console.error).finally(() => setLoading(false));
-    }, [token]);
+    }, []);
 
     useEffect(() => {
         let result = [...complaints];

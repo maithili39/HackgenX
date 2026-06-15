@@ -1,29 +1,71 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import nodemailer from 'nodemailer';
 import { User } from '../models/User.js';
+import { OTP } from '../models/OTP.js';
+import bcrypt from 'bcryptjs';
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'hackathon_secret_key_123';
+const REFRESH_SECRET = process.env.REFRESH_SECRET || 'hackathon_refresh_key_123';
 
-// ─── In-Memory OTP Store (email -> { otp, expiry }) ─────────────────────────
-const otpStore = new Map();
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Limit each IP to 5 requests per windowMs
+    message: { message: 'Too many requests from this IP, please try again after 15 minutes' }
+});
 
-// ─── Send OTP via Nodemailer (Ethereal test account) ─────────────────────────
-router.post('/send-otp', async (req, res) => {
+const setCookies = (res, accessToken, refreshToken) => {
+    res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'none',
+        maxAge: 15 * 60 * 1000 // 15 mins
+    });
+    res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'none',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+};
+
+const sendEmail = async (email, subject, htmlContent) => {
+    if (!process.env.RESEND_API_KEY) {
+        console.error('Missing RESEND_API_KEY in backend/api/.env, skipping email to:', email);
+        return;
+    }
+    const resendRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            from: process.env.EMAIL_FROM || 'CivicSense <onboarding@resend.dev>',
+            to: email,
+            subject: subject,
+            html: htmlContent
+        })
+    });
+    const resendData = await resendRes.json();
+    if (!resendRes.ok) {
+        throw new Error(resendData.message || 'Failed to send via Resend API');
+    }
+    console.log(`\n📧  EMAIL DISPATCHED: ${subject} to ${email}`);
+};
+
+router.post('/send-otp', authLimiter, async (req, res) => {
     try {
         const { email, name, role } = req.body;
         if (!email) return res.status(400).json({ message: 'Email is required' });
 
-        if (!process.env.RESEND_API_KEY) {
-            console.error('Missing RESEND_API_KEY in backend/api/.env');
-            return res.status(500).json({ message: 'Email API is not configured on the server.' });
-        }
-
         const roleLabel = (role || 'user').replace('_', ' ').toUpperCase();
-
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        otpStore.set(email, { otp, expiry: Date.now() + 5 * 60 * 1000 }); // 5 min expiry
+        const hashedOtp = await bcrypt.hash(otp, 10);
+        
+        await OTP.deleteMany({ email });
+        await OTP.create({ email, otp: hashedOtp });
 
         const htmlContent = `
 <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;
@@ -31,50 +73,25 @@ router.post('/send-otp', async (req, res) => {
   <h2 style="color:#3b82f6;margin-bottom:4px;">CivicSense Portal</h2>
   <p style="color:#64748b;font-size:0.8rem;margin-top:0;">AI-Powered Grievance Redressal System</p>
   <hr style="border-color:#1e293b;margin:16px 0;" />
-
   <p>Hello <strong>${name || 'User'}</strong>,</p>
   <p>You are registering as a <strong>${roleLabel}</strong> on the CivicSense portal.
      Please verify your email with the OTP below:</p>
-
   <div style="text-align:center;margin:28px 0;">
     <span style="font-size:2.8rem;font-weight:bold;letter-spacing:0.35em;
                  color:#3b82f6;background:#1e293b;padding:18px 36px;
                  border-radius:10px;display:inline-block;
                  border:2px solid #3b82f6;">${otp}</span>
   </div>
-
-  <p style="color:#94a3b8;font-size:0.85rem;">
-    This OTP is valid for 5 minutes. Do not share it with anyone.
-  </p>
-  <hr style="border-color:#1e293b;margin:20px 0;" />
-  <p style="color:#475569;font-size:0.75rem;">
-    If you did not initiate this registration, please ignore this email.
-  </p>
+  <p style="color:#94a3b8;font-size:0.85rem;">This OTP is valid for 5 minutes. Do not share it with anyone.</p>
 </div>`;
-
-        const resendRes = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                from: 'CivicSense <onboarding@resend.dev>',
-                to: email,
-                subject: '[CivicSense] Email Verification OTP',
-                html: htmlContent
-            })
-        });
-
-        const resendData = await resendRes.json();
-
-        if (!resendRes.ok) {
-            throw new Error(resendData.message || 'Failed to send via Resend API');
+        
+        try {
+            await sendEmail(email, '[CivicSense] Email Verification OTP', htmlContent);
+        } catch (e) {
+            console.error('Email send failed:', e.message);
+            // If email fails, don't fail the API call in dev, just print OTP for hackathon
+            console.log(`\n⚠️  DEV MODE OTP FOR ${email}: ${otp}\n`);
         }
-
-        console.log('\n📧  RESEND API: OTP EMAIL DISPATCHED');
-        console.log(`    To      : ${email}  (Role: ${roleLabel})`);
-        console.log(`    Msg ID  : ${resendData.id}\n`);
 
         res.json({ message: 'OTP sent successfully to your email' });
     } catch (error) {
@@ -83,9 +100,11 @@ router.post('/send-otp', async (req, res) => {
     }
 });
 
-// ─── Auth Middleware ──────────────────────────────────────────────────────────
 const authMiddleware = (req, res, next) => {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    let token = req.cookies?.accessToken;
+    if (!token && req.header('Authorization')) {
+        token = req.header('Authorization').replace('Bearer ', '');
+    }
     if (!token) return res.status(401).json({ message: 'No token' });
     try {
         req.user = jwt.verify(token, JWT_SECRET);
@@ -95,26 +114,20 @@ const authMiddleware = (req, res, next) => {
     }
 };
 
-// Register Citizen, Field Worker, Officer, Commissioner, or Admin
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
     try {
         const { name, email, password, role, department, phone, otp } = req.body;
-
         if (!name || !email || !password || !otp) {
             return res.status(400).json({ message: 'Please provide all required fields including OTP' });
         }
 
-        // Verify OTP
-        const stored = otpStore.get(email);
-        if (!stored) return res.status(400).json({ message: 'No OTP requested or OTP expired' });
-        if (Date.now() > stored.expiry) {
-            otpStore.delete(email);
-            return res.status(400).json({ message: 'OTP expired. Please request a new one.' });
-        }
-        if (stored.otp !== otp) return res.status(400).json({ message: 'Invalid OTP' });
+        const otpRecord = await OTP.findOne({ email });
+        if (!otpRecord) return res.status(400).json({ message: 'No OTP requested or OTP expired' });
         
-        // OTP verified successfully, clear it
-        otpStore.delete(email);
+        const isMatch = await bcrypt.compare(otp, otpRecord.otp);
+        if (!isMatch) return res.status(400).json({ message: 'Invalid OTP' });
+        
+        await OTP.deleteMany({ email });
 
         const allowedRoles = ['citizen', 'admin', 'field_worker', 'officer', 'commissioner'];
         const userRole = allowedRoles.includes(role) ? role : 'citizen';
@@ -123,23 +136,18 @@ router.post('/register', async (req, res) => {
         if (existingUser) return res.status(400).json({ message: 'User already exists' });
 
         const user = new User({
-            name,
-            email,
-            password,
-            role: userRole,
-            department: department || null,
-            phone: phone || null,
-            emailVerified: true   // OTP was verified on registration
+            name, email, password, role: userRole, department: department || null, phone: phone || null, emailVerified: true
         });
         await user.save();
 
-        const token = jwt.sign(
+        const accessToken = jwt.sign(
             { userId: user._id, role: user.role, department: user.department, name: user.name },
-            JWT_SECRET,
-            { expiresIn: '7d' }
+            JWT_SECRET, { expiresIn: '15m' }
         );
+        const refreshToken = jwt.sign({ userId: user._id }, REFRESH_SECRET, { expiresIn: '7d' });
+        setCookies(res, accessToken, refreshToken);
+
         res.status(201).json({
-            token,
             user: { id: user._id, name: user.name, role: user.role, department: user.department }
         });
     } catch (error) {
@@ -148,14 +156,10 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Login User
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
     try {
         const { email, password } = req.body;
-
-        if (!email || !password) {
-            return res.status(400).json({ message: 'Please provide email and password' });
-        }
+        if (!email || !password) return res.status(400).json({ message: 'Please provide email and password' });
 
         const user = await User.findOne({ email });
         if (!user) return res.status(400).json({ message: 'Invalid credentials' });
@@ -163,13 +167,14 @@ router.post('/login', async (req, res) => {
         const isMatch = await user.comparePassword(password);
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-        const token = jwt.sign(
+        const accessToken = jwt.sign(
             { userId: user._id, role: user.role, department: user.department, name: user.name },
-            JWT_SECRET,
-            { expiresIn: '7d' }
+            JWT_SECRET, { expiresIn: '15m' }
         );
+        const refreshToken = jwt.sign({ userId: user._id }, REFRESH_SECRET, { expiresIn: '7d' });
+        setCookies(res, accessToken, refreshToken);
+
         res.json({
-            token,
             user: { id: user._id, name: user.name, role: user.role, department: user.department }
         });
     } catch (error) {
@@ -178,9 +183,90 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Get all field workers in a department (for officer to assign)
+router.post('/refresh', async (req, res) => {
+    const refreshToken = req.cookies?.refreshToken;
+    if (!refreshToken) return res.status(401).json({ message: 'No refresh token' });
+    try {
+        const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
+        const user = await User.findById(decoded.userId);
+        if (!user) return res.status(401).json({ message: 'User not found' });
+        
+        const accessToken = jwt.sign(
+            { userId: user._id, role: user.role, department: user.department, name: user.name },
+            JWT_SECRET, { expiresIn: '15m' }
+        );
+        res.cookie('accessToken', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'none',
+            maxAge: 15 * 60 * 1000
+        });
+        res.json({ message: 'Token refreshed successfully' });
+    } catch (err) {
+        res.status(401).json({ message: 'Invalid refresh token' });
+    }
+});
+
+router.post('/logout', (req, res) => {
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
+    res.json({ message: 'Logged out successfully' });
+});
+
+router.post('/forgot-password', authLimiter, async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ email });
+        if (!user) return res.status(400).json({ message: 'User not found' });
+
+        const resetToken = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '10m' });
+        const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+        
+        const html = `
+<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;
+           background:#0f172a;color:#e2e8f0;border-radius:12px;border:1px solid #1e293b;">
+  <h2 style="color:#3b82f6;margin-bottom:4px;">CivicSense Password Reset</h2>
+  <hr style="border-color:#1e293b;margin:16px 0;" />
+  <p>You requested a password reset. Click the link below to set a new password:</p>
+  <a href="${resetLink}" style="color:#3b82f6;">Reset Password</a>
+  <p style="color:#94a3b8;font-size:0.85rem;margin-top:20px;">This link expires in 10 minutes.</p>
+</div>`;
+        try {
+            await sendEmail(email, '[CivicSense] Password Reset', html);
+        } catch (e) {
+            console.error('Email send failed:', e.message);
+            console.log(`\n⚠️  DEV MODE RESET LINK FOR ${email}: ${resetLink}\n`);
+        }
+
+        res.json({ message: 'Password reset email sent' });
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+router.post('/reset-password', authLimiter, async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+        if (!token || !newPassword) return res.status(400).json({ message: 'Missing fields' });
+
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const user = await User.findById(decoded.userId);
+        if (!user) return res.status(400).json({ message: 'User not found' });
+
+        user.password = newPassword; 
+        await user.save();
+        res.json({ message: 'Password reset successful' });
+    } catch (err) {
+        res.status(400).json({ message: 'Invalid or expired token' });
+    }
+});
+
 router.get('/field-workers', async (req, res) => {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    // Keep header auth for this just in case, or rely on middleware which checks both
+    let token = req.cookies?.accessToken;
+    if (!token && req.header('Authorization')) {
+        token = req.header('Authorization').replace('Bearer ', '');
+    }
     if (!token) return res.status(401).json({ message: 'No token' });
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
@@ -195,7 +281,6 @@ router.get('/field-workers', async (req, res) => {
     }
 });
 
-// ── GET /api/auth/me — Full profile for logged-in user ────────────────────────
 router.get('/me', authMiddleware, async (req, res) => {
     try {
         const user = await User.findById(req.user.userId).select('-password');
@@ -206,7 +291,6 @@ router.get('/me', authMiddleware, async (req, res) => {
     }
 });
 
-// ── PUT /api/auth/profile — Update citizen profile ────────────────────────────
 router.put('/profile', authMiddleware, async (req, res) => {
     try {
         const { name, phone, ward, address, profilePicture, notifyEmail, notifySMS } = req.body;
@@ -226,8 +310,7 @@ router.put('/profile', authMiddleware, async (req, res) => {
         );
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        // Recalculate citizen score based on profile completeness
-        let score = 30; // base
+        let score = 30;
         if (user.phone) score += 15;
         if (user.ward) score += 15;
         if (user.address) score += 10;
@@ -243,4 +326,3 @@ router.put('/profile', authMiddleware, async (req, res) => {
 });
 
 export default router;
-

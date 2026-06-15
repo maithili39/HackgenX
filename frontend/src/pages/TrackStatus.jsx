@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../api/axios.js';
 import { AuthContext } from '../context/AuthContext';
 import { useSocket } from '../hooks/useSocket';
 import { Clock, Search, CheckCircle, ThumbsUp, ThumbsDown, MapPin, Shield } from 'lucide-react';
@@ -17,7 +17,7 @@ export default function TrackStatus() {
     const [feedbackNote, setFeedbackNote] = useState('');
     const [feedbackLoading, setFeedbackLoading] = useState(false);
     const [feedbackMsg, setFeedbackMsg] = useState('');
-    const { token, user } = useContext(AuthContext);
+    const { user } = useContext(AuthContext);
 
     useSocket((token && user) ? {
         [`complaint_updated_${user.id}`]: (updated) => {
@@ -28,22 +28,18 @@ export default function TrackStatus() {
 
     const fetchMyComplaints = async () => {
         try {
-            const res = await axios.get(`${__API_BASE__}/api/complaints/my-complaints`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.get(`/api/complaints/my-complaints`);
             setComplaints(res.data);
         } catch (e) { console.error(e); }
     };
 
-    useEffect(() => { fetchMyComplaints(); }, [token]);
+    useEffect(() => { fetchMyComplaints(); }, []);
 
     const handleSearch = async (e) => {
         e.preventDefault();
         setLoading(true); setError(''); setComplaint(null);
         try {
-            const res = await axios.get(`${__API_BASE__}/api/complaints/my-complaints`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.get(`/api/complaints/my-complaints`);
             const found = res.data.find(c =>
                 c._id === complaintId.trim() ||
                 c.complaintId === complaintId.trim()
@@ -57,10 +53,9 @@ export default function TrackStatus() {
     const handleFeedback = async (type) => {
         setFeedbackLoading(true); setFeedbackMsg('');
         try {
-            const res = await axios.put(
-                `${__API_BASE__}/api/complaints/${complaint._id}/feedback`,
-                { feedback: type, note: feedbackNote },
-                { headers: { Authorization: `Bearer ${token}` } }
+            const res = await api.put(
+                `/api/complaints/${complaint._id}/feedback`,
+                { feedback: type, note: feedbackNote }
             );
             setComplaint(res.data.complaint);
             setFeedbackMsg(type === 'accepted' ? '✅ You accepted the resolution. Ticket is now closed.' : '⚠️ Rejection noted. Ticket reopened for further action.');

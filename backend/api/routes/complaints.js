@@ -3,13 +3,23 @@ import jwt from 'jsonwebtoken';
 import { Complaint } from '../models/Complaint.js';
 import { User } from '../models/User.js';
 import { DeptMapping } from '../models/DeptMapping.js';
+import xss from 'xss';
+import { v2 as cloudinary } from 'cloudinary';
+
+// Cloudinary config (auto-picks up CLOUDINARY_URL from env)
+cloudinary.config({
+    secure: true
+});
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'hackathon_secret_key_123';
 
 // ─── Auth Middleware ──────────────────────────────────────────────────────────
 const authMiddleware = (req, res, next) => {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    let token = req.cookies?.accessToken;
+    if (!token && req.header('Authorization')) {
+        token = req.header('Authorization').replace('Bearer ', '');
+    }
     if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
@@ -37,6 +47,37 @@ function getSlaForDepartment(dept) {
     const rule = PRIORITY_RULES[dept] || PRIORITY_RULES['default'];
     const slaDeadline = new Date(Date.now() + rule.slaMins * 60 * 1000);
     return { priority: rule.priority, slaDeadline };
+}
+
+// ─── ML Service Circuit Breaker ───────────────────────────────────────────────
+let mlFailures = 0;
+let mlNextRetry = 0;
+
+async function isMlServiceHealthy(url) {
+    if (Date.now() < mlNextRetry) return false;
+    
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 2000);
+        const res = await fetch(`${url}/health`, { signal: controller.signal });
+        clearTimeout(timer);
+        
+        if (res.ok) {
+            mlFailures = 0;
+            return true;
+        }
+    } catch (e) {
+        // ignore error
+    }
+    
+    mlFailures++;
+    console.log(`[Circuit Breaker] ML Health Check Failed (${mlFailures}/3)`);
+    if (mlFailures >= 3) {
+        console.log('🚨 Circuit Breaker TRIPPED. ML Service skipped for 5 minutes.');
+        mlNextRetry = Date.now() + 5 * 60 * 1000;
+    }
+    return false;
 }
 
 // ─── AI Classification (Python ML → Gemini → Keyword fallback) ────────────────
@@ -101,27 +142,34 @@ async function classifyComplaint(description, department) {
     let aiSummary = `Complaint classified under ${detectedDept}. Severity: ${riskLevel}. Citizen sentiment: ${emotion}.`;
 
     // ─── 1. Try Python DistilBERT ML Service (primary) ───────────────────────
-    try {
-        const fetch = (await import('node-fetch')).default;
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 5000);
-        const mlRes = await fetch(`${ML_SERVICE_URL}/predict`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: description }),
-            signal: controller.signal
-        });
-        clearTimeout(timer);
-        if (mlRes.ok) {
-            const mlData = await mlRes.json();
-            if (!department || department === 'Pending Analysis') detectedDept = mlData.department || detectedDept;
-            emotion = mlData.sentiment || emotion;
-            aiSummary = `[BERT] Classified as ${detectedDept}. Sentiment: ${emotion}. Severity: ${riskLevel}.`;
-            console.log(`[ML Service] Dept: ${detectedDept} | Sentiment: ${emotion} | Model: ${mlData.model_used}`);
-            return { department: detectedDept, riskLevel, emotion, aiSummary };
+    if (await isMlServiceHealthy(ML_SERVICE_URL)) {
+        try {
+            const fetch = (await import('node-fetch')).default;
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 8000); // 8s timeout limit
+            const mlRes = await fetch(`${ML_SERVICE_URL}/predict`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: description }),
+                signal: controller.signal
+            });
+            clearTimeout(timer);
+            if (mlRes.ok) {
+                const mlData = await mlRes.json();
+                if (!department || department === 'Pending Analysis') detectedDept = mlData.department || detectedDept;
+                emotion = mlData.sentiment || emotion;
+                aiSummary = `[BERT] Classified as ${detectedDept}. Sentiment: ${emotion}. Severity: ${riskLevel}.`;
+                console.log(`[ML Service] Dept: ${detectedDept} | Sentiment: ${emotion} | Model: ${mlData.model_used}`);
+                return { department: detectedDept, riskLevel, emotion, aiSummary };
+            }
+        } catch (e) {
+            console.log('[ML Service] Call failed or timed out:', e.message);
+            mlFailures++;
+            if (mlFailures >= 3) {
+                console.log('🚨 Circuit Breaker TRIPPED. ML Service skipped for 5 minutes.');
+                mlNextRetry = Date.now() + 5 * 60 * 1000;
+            }
         }
-    } catch (e) {
-        console.log('[ML Service] Not available, falling back:', e.message);
     }
 
     // ─── 2. Try Gemini if ML service is unavailable ───────────────────────────
@@ -195,7 +243,19 @@ router.post('/classify', authMiddleware, async (req, res) => {
 // ── Citizen: Submit complaint ─────────────────────────────────────────────────
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        const { description, name, contact, homeAddress, department, photo, location } = req.body;
+        let { description, name, contact, homeAddress, department, photo, location, ward } = req.body;
+
+        // Input Sanitization
+        description = xss(description);
+        name = xss(name);
+        contact = xss(contact);
+        homeAddress = xss(homeAddress);
+        department = department ? xss(department) : department;
+
+        // File Size Validation
+        if (photo && photo.length > 7 * 1024 * 1024) {
+            return res.status(400).json({ message: 'Photo size exceeds 5MB limit' });
+        }
 
         const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
         const randomPart = Math.floor(1000 + Math.random() * 9000);
@@ -209,6 +269,20 @@ router.post('/', authMiddleware, async (req, res) => {
             }
         }
 
+        // Upload photo to Cloudinary
+        let uploadedPhotoUrl = null;
+        if (photo && photo.startsWith('data:image')) {
+            try {
+                const uploadRes = await cloudinary.uploader.upload(photo, { folder: 'hackgenx/complaints' });
+                uploadedPhotoUrl = uploadRes.secure_url;
+            } catch (err) {
+                console.error('Cloudinary upload error:', err.message);
+                return res.status(500).json({ message: 'Failed to upload photo' });
+            }
+        } else if (photo) {
+            uploadedPhotoUrl = photo; // already a URL
+        }
+
         const newComplaint = new Complaint({
             userId: req.user.userId,
             complaintId,
@@ -217,9 +291,10 @@ router.post('/', authMiddleware, async (req, res) => {
             homeAddress,
             description,
             department: department || 'Pending Analysis',
-            photo: photo || null,
+            photo: uploadedPhotoUrl,
             location: location || null,
-            beforePhoto: photo || null,
+            ward: ward || '',
+            beforePhoto: uploadedPhotoUrl,
             auditLog: [{
                 action: 'Complaint Submitted',
                 performedBy: name,
@@ -288,11 +363,8 @@ router.post('/', authMiddleware, async (req, res) => {
         }, 3000);
 
         res.status(201).json({
-            message: isDuplicate
-                ? 'Note: A similar complaint was already filed nearby. Your complaint is still registered.'
-                : 'Complaint registered successfully',
-            complaint: newComplaint,
-            isDuplicate
+            message: 'Complaint registered successfully',
+            complaint: newComplaint
         });
     } catch (error) {
         console.error('Error submitting complaint:', error);
@@ -421,7 +493,21 @@ router.put('/:id/resolve', authMiddleware, async (req, res) => {
             gpsNote = `GPS distance from complaint: ${Math.round(dist)}m. ${gpsVerified ? 'Within geo-fence ✓' : 'Outside geo-fence ✗'}`;
         }
 
-        complaint.afterPhoto = afterPhoto || null;
+        // Upload afterPhoto to Cloudinary
+        let uploadedAfterPhoto = null;
+        if (afterPhoto && afterPhoto.startsWith('data:image')) {
+            try {
+                const uploadRes = await cloudinary.uploader.upload(afterPhoto, { folder: 'hackgenx/resolutions' });
+                uploadedAfterPhoto = uploadRes.secure_url;
+            } catch (err) {
+                console.error('Cloudinary upload error:', err.message);
+                return res.status(500).json({ message: 'Failed to upload resolution photo' });
+            }
+        } else if (afterPhoto) {
+            uploadedAfterPhoto = afterPhoto; // already a URL
+        }
+
+        complaint.afterPhoto = uploadedAfterPhoto;
         complaint.gpsVerified = gpsVerified;
         complaint.resolutionLocation = { lat: currentLat, lng: currentLng };
         complaint.status = 'Resolved';

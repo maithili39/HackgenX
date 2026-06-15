@@ -1,16 +1,22 @@
+import { Queue, Worker } from 'bullmq';
+import Redis from 'ioredis';
 import { Complaint } from '../models/Complaint.js';
 
-// SLA hours per escalation level
-const ESCALATION_DELAY_MINS = 30; // re-check every 30 mins for further escalation
+const redisConnection = new Redis(process.env.REDIS_URL || 'redis://127.0.0.1:6379', {
+    maxRetriesPerRequest: null,
+});
 
-export function startSlaEscalation(io) {
-    console.log('✅ SLA Escalation Engine started');
+export const slaQueue = new Queue('slaQueue', { connection: redisConnection });
 
-    setInterval(async () => {
+const ESCALATION_DELAY_MINS = 30;
+
+export function initializeSlaWorker(io) {
+    const worker = new Worker('slaQueue', async job => {
+        if (job.name !== 'processSlaEscalations') return;
+        
         try {
             const now = new Date();
 
-            // Find all open complaints whose SLA deadline has passed and not yet closed
             const breachedComplaints = await Complaint.find({
                 slaDeadline: { $lt: now },
                 slaBreached: false,
@@ -28,7 +34,6 @@ export function startSlaEscalation(io) {
                 });
                 await complaint.save();
 
-                // Emit SLA breach event to admin/officer dashboards
                 io.emit('sla_breach', {
                     complaintId: complaint.complaintId,
                     _id: complaint._id,
@@ -38,11 +43,9 @@ export function startSlaEscalation(io) {
                     description: complaint.description?.slice(0, 100),
                     slaDeadline: complaint.slaDeadline
                 });
-
                 console.log(`⚠️  SLA Breach: ${complaint.complaintId} | Dept: ${complaint.department} | Level: ${complaint.escalationLevel}`);
             }
 
-            // Continue escalating already-breached complaints at higher delays
             const furtherEscalate = await Complaint.find({
                 slaBreached: true,
                 escalationLevel: { $lt: 3 },
@@ -70,7 +73,24 @@ export function startSlaEscalation(io) {
                 });
             }
         } catch (err) {
-            console.error('SLA Engine Error:', err.message);
+            console.error('SLA Worker Error:', err.message);
         }
-    }, 60 * 1000); // Run every 60 seconds
+    }, { connection: redisConnection });
+
+    worker.on('ready', () => {
+        console.log('✅ SLA Escalation BullMQ Worker started');
+    });
+
+    worker.on('failed', (job, err) => {
+        console.error(`SLA Job ${job?.id} failed:`, err.message);
+    });
+}
+
+// Add the repeatable job to the queue
+export async function startSlaJob() {
+    await slaQueue.add('processSlaEscalations', {}, {
+        repeat: {
+            every: 60 * 1000 // Run every 60 seconds
+        }
+    });
 }

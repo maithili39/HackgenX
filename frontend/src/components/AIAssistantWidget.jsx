@@ -11,7 +11,7 @@
  */
 
 import { useState, useRef, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../api/axios.js';
 import { AuthContext } from '../context/AuthContext';
 import { MessageCircle, X, Send, Bot, User, Loader2, Minimize2 } from 'lucide-react';
 
@@ -41,7 +41,7 @@ function formatTime(date) {
 }
 
 export default function AIAssistantWidget() {
-    const { token } = useContext(AuthContext);
+    
     const [open, setOpen] = useState(false);
     const [messages, setMessages] = useState([WELCOME_MESSAGE]);
     const [input, setInput] = useState('');
@@ -74,10 +74,9 @@ export default function AIAssistantWidget() {
         setLoading(true);
 
         try {
-            const res = await axios.post(
-                `${__API_BASE__}/api/ai/chatbot`,
-                { query },
-                { headers: { Authorization: `Bearer ${token}` }, timeout: 8000 }
+            const res = await api.post(
+                `/api/ai/chatbot`,
+                { query }, { timeout: 8000 }
             );
             const botMsg = {
                 id: Date.now() + 1,

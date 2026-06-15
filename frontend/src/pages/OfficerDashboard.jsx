@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../api/axios.js';
 import { toast } from 'react-hot-toast';
 import { useSocket } from '../hooks/useSocket';
 import { AuthContext } from '../context/AuthContext';
@@ -20,13 +20,13 @@ export default function OfficerDashboard() {
     const [verifyNote, setVerifyNote] = useState('');
     const [verifyMsg, setVerifyMsg] = useState('');
     const [verifying, setVerifying] = useState(false);
-    const { token, user } = useContext(AuthContext);
+    const { user } = useContext(AuthContext);
 
     const fetchData = async () => {
         try {
             const [cRes, wRes] = await Promise.all([
-                axios.get(`${__API_BASE__}/api/complaints/all`, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get(`${__API_BASE__}/api/users/workers`, { headers: { Authorization: `Bearer ${token}` } })
+                api.get(`/api/complaints/all`),
+                api.get(`/api/users/workers`)
             ]);
             setComplaints(cRes.data);
             setWorkers(wRes.data);
@@ -37,7 +37,7 @@ export default function OfficerDashboard() {
 
     useEffect(() => {
         fetchData();
-    }, [token]);
+    }, []);
 
     useSocket({
         'new_complaint_processed': (data) => {
@@ -53,10 +53,9 @@ export default function OfficerDashboard() {
     const handleAssign = async () => {
         if (!assigningTo) { setAssignMsg('Select a field worker first.'); return; }
         try {
-            const res = await axios.put(
-                `${__API_BASE__}/api/complaints/${selected._id}/assign`,
-                { workerId: assigningTo },
-                { headers: { Authorization: `Bearer ${token}` } }
+            const res = await api.put(
+                `/api/complaints/${selected._id}/assign`,
+                { workerId: assigningTo }
             );
             setAssignMsg(`✅ Assigned to ${workers.find(w => w._id === assigningTo)?.name}`);
             setSelected(res.data.complaint);
@@ -70,10 +69,9 @@ export default function OfficerDashboard() {
         setVerifying(true);
         setVerifyMsg('');
         try {
-            const res = await axios.put(
-                `${__API_BASE__}/api/complaints/${selected._id}/verify`,
-                { action, note: verifyNote },
-                { headers: { Authorization: `Bearer ${token}` } }
+            const res = await api.put(
+                `/api/complaints/${selected._id}/verify`,
+                { action, note: verifyNote }
             );
             setVerifyMsg(action === 'approved'
                 ? '✅ Resolution approved. Complaint closed.'

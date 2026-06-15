@@ -1,10 +1,10 @@
 import { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../../api/axios.js';
 import { AuthContext } from '../../context/AuthContext';
 import { UserPlus, UserCheck, Shield, HardHat, Mail, Briefcase, MapPin, Trash2, ShieldAlert } from 'lucide-react';
 
 export default function UserManagementPanel() {
-    const { token } = useContext(AuthContext);
+    
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [formData, setFormData] = useState({
@@ -17,9 +17,7 @@ export default function UserManagementPanel() {
 
     const fetchUsers = async () => {
         try {
-            const res = await axios.get(`${__API_BASE__}/api/users`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.get(`/api/users`);
             setUsers(res.data);
         } catch (err) {
             console.error('Error fetching users:', err);
@@ -29,17 +27,15 @@ export default function UserManagementPanel() {
     };
 
     useEffect(() => {
-        if (token) fetchUsers();
-    }, [token]);
+        if (user) fetchUsers();
+    }, []);
 
     const handleCreateUser = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
         setMessage('');
         try {
-            await axios.post(`${__API_BASE__}/api/users`, formData, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.post(`/api/users`, formData);
             setMessage('User created successfully!');
             setFormData({ ...formData, name: '', email: '', password: '' });
             fetchUsers();

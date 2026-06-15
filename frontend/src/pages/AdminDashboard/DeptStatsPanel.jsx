@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../../api/axios.js';
 import { AuthContext } from '../../context/AuthContext';
 import { BarChart3, TrendingUp, AlertTriangle, CheckCircle2, Clock, Building2 } from 'lucide-react';
 
@@ -18,19 +18,17 @@ function SLABar({ rate }) {
 }
 
 export default function DeptStatsPanel() {
-    const { token } = useContext(AuthContext);
+    
     const [stats, setStats] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (!token) return;
-        axios.get(`${__API_BASE__}/api/complaints/stats/departments`, {
-            headers: { Authorization: `Bearer ${token}` }
-        }).then(r => setStats(r.data))
+        if (!user) return;
+        api.get(`/api/complaints/stats/departments`).then(r => setStats(r.data))
             .catch(() => setError('Failed to load department stats'))
             .finally(() => setLoading(false));
-    }, [token]);
+    }, []);
 
     const totalComplaints = stats.reduce((s, d) => s + d.total, 0);
     const totalResolved = stats.reduce((s, d) => s + d.resolved, 0);

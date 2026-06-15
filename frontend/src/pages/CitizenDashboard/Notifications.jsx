@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../../api/axios.js';
 import { AuthContext } from '../../context/AuthContext';
 import { Bell, CheckCircle, AlertTriangle, MessageSquare, Star, X, Mail, Phone, ToggleLeft, ToggleRight } from 'lucide-react';
 
@@ -12,7 +12,7 @@ export const MOCK_NOTIFICATIONS = [
 ];
 
 export default function Notifications({ notifications, setNotifications, unreadCount, setUnreadCount, profile }) {
-    const { token } = useContext(AuthContext);
+    
     const [prefs, setPrefs] = useState({ notifyEmail: profile?.notifyEmail ?? true, notifySMS: profile?.notifySMS ?? false });
     const [savingPrefs, setSavingPrefs] = useState(false);
     const [prefsSaved, setPrefsSaved] = useState(false);
@@ -40,7 +40,7 @@ export default function Notifications({ notifications, setNotifications, unreadC
     const savePrefs = async () => {
         setSavingPrefs(true);
         try {
-            await axios.put(`${__API_BASE__}/api/auth/profile`, prefs, { headers: { Authorization: `Bearer ${token}` } });
+            await api.put(`/api/auth/profile`, prefs);
             setPrefsSaved(true);
             setTimeout(() => setPrefsSaved(false), 3000);
         } catch { } finally { setSavingPrefs(false); }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../api/axios.js';
 import { toast } from 'react-hot-toast';
 import { useSocket } from '../hooks/useSocket';
 import { AuthContext } from '../context/AuthContext';
@@ -11,13 +11,13 @@ export default function CommissionerDashboard() {
     const [slaAlerts, setSlaAlerts] = useState([]);
     const [complaints, setComplaints] = useState([]);
     const [loading, setLoading] = useState(true);
-    const { token, user } = useContext(AuthContext);
+    const { user } = useContext(AuthContext);
 
     const fetchStats = async () => {
         try {
             const [statsRes, allRes] = await Promise.all([
-                axios.get(`${__API_BASE__}/api/complaints/stats/departments`, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get(`${__API_BASE__}/api/complaints/all`, { headers: { Authorization: `Bearer ${token}` } })
+                api.get(`/api/complaints/stats/departments`),
+                api.get(`/api/complaints/all`)
             ]);
             setDeptStats(statsRes.data);
             const all = allRes.data;
@@ -30,7 +30,7 @@ export default function CommissionerDashboard() {
 
     useEffect(() => {
         fetchStats();
-    }, [token]);
+    }, []);
 
     useSocket({
         'sla_breach': (alert) => {

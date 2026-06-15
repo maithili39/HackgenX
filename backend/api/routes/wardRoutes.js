@@ -1,17 +1,7 @@
 import express from 'express';
-import jwt from 'jsonwebtoken';
 import { Ward } from '../models/Ward.js';
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'hackathon_secret_key_123';
-
-// Auth middleware
-const authMiddleware = (req, res, next) => {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ message: 'No token' });
-    try { req.user = jwt.verify(token, JWT_SECRET); next(); }
-    catch (e) { res.status(401).json({ message: 'Invalid token' }); }
-};
 
 // ─── Point-in-Polygon (Ray-Casting Algorithm) ─────────────────────────────────
 function pointInPolygon(lat, lng, polygon) {

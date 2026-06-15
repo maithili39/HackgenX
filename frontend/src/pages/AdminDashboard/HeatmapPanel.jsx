@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../../api/axios.js';
 import { AuthContext } from '../../context/AuthContext';
 import { Map } from 'lucide-react';
 
@@ -13,16 +13,14 @@ export default function HeatmapPanel() {
     const [points, setPoints] = useState([]);
     const [loading, setLoading] = useState(true);
     const [hover, setHover] = useState(null);
-    const { token } = useContext(AuthContext);
+    
 
     useEffect(() => {
-        axios.get(`${__API_BASE__}/api/complaints/heatmap`, {
-            headers: { Authorization: `Bearer ${token}` }
-        }).then(res => {
+        api.get(`/api/complaints/heatmap`).then(res => {
             setPoints(res.data);
         }).catch(e => console.error(e))
             .finally(() => setLoading(false));
-    }, [token]);
+    }, []);
 
     // Map lat/lng to SVG coordinate space
     // India bounding: lat 8–37, lng 68–98

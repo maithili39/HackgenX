@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../../api/axios.js';
 import { AuthContext } from '../../context/AuthContext';
 import { Settings, Save, RefreshCw, CheckCircle2, AlertTriangle, Edit2, X } from 'lucide-react';
 
@@ -9,7 +9,7 @@ const DEPT_OPTS = ['Electricity', 'Water Supply', 'Roads', 'Sanitation', 'Public
 const PRIORITY_COLORS = { P0: '#ef4444', P1: '#f59e0b', P2: '#3b82f6', P3: '#10b981' };
 
 export default function DeptMappingPanel() {
-    const { token } = useContext(AuthContext);
+    
     const [mappings, setMappings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -20,14 +20,12 @@ export default function DeptMappingPanel() {
 
     useEffect(() => {
         loadMappings();
-    }, [token]);
+    }, []);
 
     const loadMappings = async () => {
         setLoading(true);
         try {
-            const r = await axios.get(`${__API_BASE__}/api/complaints/dept-mapping`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const r = await api.get(`/api/complaints/dept-mapping`);
             setMappings(r.data);
         } catch {
             setError('Failed to load mappings');
@@ -53,9 +51,8 @@ export default function DeptMappingPanel() {
         setSaving(true);
         setError('');
         try {
-            await axios.put(`${__API_BASE__}/api/complaints/dept-mapping`,
-                { mappings },
-                { headers: { Authorization: `Bearer ${token}` } }
+            await api.put(`/api/complaints/dept-mapping`,
+                { mappings }
             );
             setSaved(true);
             setTimeout(() => setSaved(false), 3000);

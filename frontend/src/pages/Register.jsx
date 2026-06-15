@@ -1,6 +1,7 @@
 import { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import { Users, HardHat, BadgeCheck, Crown, ShieldAlert } from 'lucide-react';
 
 const ROLES = [
@@ -30,7 +31,7 @@ export default function Register() {
     const [otpSending, setOtpSending] = useState(false);
     const [otpPreviewUrl, setOtpPreviewUrl] = useState('');
 
-    const API_BASE = __API_BASE__;
+    // Removed API_BASE since we use __API_BASE__ globally
 
     const { register } = useContext(AuthContext);
     const navigate = useNavigate();
@@ -49,13 +50,8 @@ export default function Register() {
             setOtpSending(true);
             setError('');
             try {
-                const res = await fetch(`${API_BASE}/auth/send-otp`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, name, role }),
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.message || 'Failed to send OTP');
+                const res = await axios.post(`${__API_BASE__}/api/auth/send-otp`, { email, name, role });
+                const data = res.data;
                 setOtpPreviewUrl(data.previewUrl || '');
                 setShowOtp(true);
             } catch (err) {

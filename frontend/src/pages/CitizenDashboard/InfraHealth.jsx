@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../../api/axios.js';
 import { AuthContext } from '../../context/AuthContext';
 import { Activity, TrendingUp, TrendingDown, Info } from 'lucide-react';
 
@@ -64,22 +64,22 @@ function GaugeArc({ score }) {
 }
 
 export default function InfraHealth() {
-    const { token } = useContext(AuthContext);
+    
     const [complaints, setComplaints] = useState([]);
     const [ward, setWard] = useState('');
     const [loading, setLoading] = useState(true);
     const [tooltip, setTooltip] = useState(null);
 
     useEffect(() => {
-        if (!token) return;
+        if (!user) return;
         Promise.all([
-            axios.get(`${__API_BASE__}/api/complaints/my-complaints`, { headers: { Authorization: `Bearer ${token}` } }),
-            axios.get(`${__API_BASE__}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } }),
+            api.get(`/api/complaints/my-complaints`),
+            api.get(`/api/auth/me`),
         ]).then(([cRes, uRes]) => {
             setComplaints(cRes.data);
             setWard(uRes.data.ward || 'Your Ward');
         }).catch(() => { }).finally(() => setLoading(false));
-    }, [token]);
+    }, []);
 
     const { score, change, reasons } = calcWardScore(complaints);
     const scoreColor = score >= 70 ? '#10b981' : score >= 40 ? '#f59e0b' : '#ef4444';

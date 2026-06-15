@@ -190,6 +190,7 @@ class PredictResponse(BaseModel):
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 @app.get("/")
+@app.get("/health")
 def health():
     return {
         "status": "running",

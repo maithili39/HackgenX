@@ -1,9 +1,9 @@
 import { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../api/axios.js';
 import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { useSocket } from '../hooks/useSocket';
-import { MapPin, Camera, CheckCircle, Clock, AlertTriangle, Navigation, Upload, HardHat, Play } from 'lucide-react';
+import { MapPin, Camera, CheckCircle, Clock, AlertTriangle, Navigation, HardHat, Play } from 'lucide-react';
 import AuditLogPanel from '../components/AuditLogPanel';
 
 const PRIORITY_COLORS = { P0: '#d9736a', P1: '#cba84a', P2: '#5aabcf', P3: '#5eb88a', Pending: '#94a3b8' };
@@ -20,13 +20,11 @@ export default function FieldWorkerDashboard() {
     const [gpsError, setGpsError] = useState('');
     const [markingStarted, setMarkingStarted] = useState(false);
     const [startedMsg, setStartedMsg] = useState('');
-    const { token, user } = useContext(AuthContext);
+    const { user } = useContext(AuthContext);
 
     const fetchAssigned = async () => {
         try {
-            const res = await axios.get(`${__API_BASE__}/api/complaints/assigned`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.get(`/api/complaints/assigned`);
             setComplaints(res.data);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
@@ -35,7 +33,7 @@ export default function FieldWorkerDashboard() {
 
     useEffect(() => {
         fetchAssigned();
-    }, [token]);
+    }, []);
 
     useSocket({
         'new_complaint_processed': (data) => {
@@ -76,10 +74,9 @@ export default function FieldWorkerDashboard() {
         setMarkingStarted(true);
         setStartedMsg('');
         try {
-            const res = await axios.put(
-                `${__API_BASE__}/api/complaints/${selected._id}/start`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
+            const res = await api.put(
+                `/api/complaints/${selected._id}/start`,
+                {}
             );
             setStartedMsg('✅ Work marked as started! Status updated to In Progress.');
             setSelected(res.data.complaint);
@@ -96,10 +93,9 @@ export default function FieldWorkerDashboard() {
         setResolving(true);
         setResolveMsg('');
         try {
-            const res = await axios.put(
-                `${__API_BASE__}/api/complaints/${selected._id}/resolve`,
-                { afterPhoto, currentLat: currentGps?.lat, currentLng: currentGps?.lng },
-                { headers: { Authorization: `Bearer ${token}` } }
+            const res = await api.put(
+                `/api/complaints/${selected._id}/resolve`,
+                { afterPhoto, currentLat: currentGps?.lat, currentLng: currentGps?.lng }
             );
             setResolveMsg(res.data.gpsVerified
                 ? '✅ Resolved! GPS verified – sent for officer review.'

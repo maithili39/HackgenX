@@ -1,10 +1,10 @@
 import { useState, useContext, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios.js';
 import { AuthContext } from '../../context/AuthContext';
 import LocationPicker from '../../components/LocationPicker';
 import toast from 'react-hot-toast';
 import {
-    CheckCircle, MapPin, Camera, Upload, Building2, User, Phone,
+    CheckCircle, MapPin, Camera, Building2, User, Phone,
     Info, Sparkles, Loader2, Brain, FilePlus, FileText
 } from 'lucide-react';
 
@@ -43,7 +43,7 @@ export default function SubmitComplaintSection({ onSuccess }) {
     // AI Summarizer state (from AI_Powered_Grievance_Redressal_System summarizer.py)
     const [smartSummaryText, setSmartSummaryText] = useState('');
     const [isSummarizing, setIsSummarizing] = useState(false);
-    const { token } = useContext(AuthContext);
+    
 
     // Debounced live summary — calls /api/ai/summarize as the user types
     useEffect(() => {
@@ -54,10 +54,9 @@ export default function SubmitComplaintSection({ onSuccess }) {
         const timer = setTimeout(async () => {
             setIsSummarizing(true);
             try {
-                const res = await axios.post(
-                    `${__API_BASE__}/api/ai/summarize`,
-                    { text: formData.description },
-                    { headers: { Authorization: `Bearer ${token}` } }
+                const res = await api.post(
+                    `/api/ai/summarize`,
+                    { text: formData.description }
                 );
                 setSmartSummaryText(res.data.summary || '');
             } catch {
@@ -67,16 +66,15 @@ export default function SubmitComplaintSection({ onSuccess }) {
             }
         }, 1200); // 1.2s debounce
         return () => clearTimeout(timer);
-    }, [formData.description, token]);
+    }, [formData.description]);
 
     // When location set, also auto-detect ward
     const handleLocationChange = async (loc) => {
         setLocation(loc);
         if (!loc) { setDetectedWard(null); return; }
         try {
-            const res = await axios.post(`${__API_BASE__}/api/wards/detect`,
-                { lat: loc.lat, lng: loc.lng },
-                { headers: { Authorization: `Bearer ${token}` } }
+            const res = await api.post(`/api/wards/detect`,
+                { lat: loc.lat, lng: loc.lng }
             );
             setDetectedWard(res.data.wardName);
         } catch { setDetectedWard(null); }
@@ -104,9 +102,8 @@ export default function SubmitComplaintSection({ onSuccess }) {
         if (formData.description.trim().length < 10) { setClassifyError('Enter at least 10 characters first.'); return; }
         setIsClassifying(true); setClassifyError(''); setAiResult(null);
         try {
-            const res = await axios.post(`${__API_BASE__}/api/complaints/classify`,
-                { description: formData.description, department: '' },
-                { headers: { Authorization: `Bearer ${token}` } }
+            const res = await api.post(`/api/complaints/classify`,
+                { description: formData.description, department: '' }
             );
             const { department, emotion, riskLevel, aiSummary } = res.data;
             if (department && DEPARTMENTS.some(d => d.value === department)) {
@@ -131,8 +128,7 @@ export default function SubmitComplaintSection({ onSuccess }) {
         setIsSubmitting(true);
         try {
             const payload = { ...formData, photo, location, ward: detectedWard };
-            const res = await axios.post(`${__API_BASE__}/api/complaints`, payload,
-                { headers: { Authorization: `Bearer ${token}` } }
+            const res = await api.post(`/api/complaints`, payload
             );
             setSuccessData(res.data.complaint);
             setDetectedWard(null);

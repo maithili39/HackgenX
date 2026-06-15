@@ -2,17 +2,17 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
+    name: { type: String, required: true, maxlength: 100 },
+    email: { type: String, required: true, unique: true, maxlength: 255 },
     password: { type: String, required: true },
     role: { type: String, enum: ['citizen', 'admin', 'field_worker', 'officer', 'commissioner'], default: 'citizen' },
 
     // Profile fields
-    phone: { type: String, default: '' },
-    ward: { type: String, default: '' },
-    address: { type: String, default: '' },
+    phone: { type: String, default: '', maxlength: 20 },
+    ward: { type: String, default: '', maxlength: 100 },
+    address: { type: String, default: '', maxlength: 500 },
     profilePicture: { type: String, default: '' },
-    department: { type: String, default: null },
+    department: { type: String, default: null, maxlength: 100 },
 
     // Verification & Scoring
     emailVerified: { type: Boolean, default: false },
