@@ -56,6 +56,7 @@ export default function LocationPicker({ location, onLocationChange }) {
     );
     const [isGeocoding, setIsGeocoding] = useState(false);
     const [isFetchingGPS, setIsFetchingGPS] = useState(false);
+    const [gpsSource, setGpsSource] = useState(null); // 'gps' | 'ip' | null
     const autocompleteRef = useRef(null);
 
     useEffect(() => {
@@ -106,6 +107,7 @@ export default function LocationPicker({ location, onLocationChange }) {
         const lat = e.latLng.lat();
         const lng = e.latLng.lng();
         setMarker({ lat, lng });
+        setGpsSource('manual');
         reverseGeocode(lat, lng);
     }, [reverseGeocode]);
 
@@ -114,47 +116,49 @@ export default function LocationPicker({ location, onLocationChange }) {
         const lat = e.latLng.lat();
         const lng = e.latLng.lng();
         setMarker({ lat, lng });
+        setGpsSource('manual');
         reverseGeocode(lat, lng);
     }, [reverseGeocode]);
 
     // ── Auto-fetch device GPS ──────────────────────────────────────────────
     const handleAutoFetchGPS = () => {
         setIsFetchingGPS(true);
+        setGpsSource(null);
 
-        const fetchIPLocation = () => {
+        const onIpFallback = () => {
+            // IP geolocation is city-level only — pan map but don't pin.
+            // Let the user manually click their exact spot.
             fetch('https://ipapi.co/json/')
                 .then(r => r.json())
                 .then(data => {
                     if (data.latitude && data.longitude) {
-                        const lat = data.latitude;
-                        const lng = data.longitude;
-                        setMarker({ lat, lng });
-                        setCenter({ lat, lng });
-                        reverseGeocode(lat, lng);
+                        setCenter({ lat: data.latitude, lng: data.longitude });
+                        setGpsSource('ip');
                     } else {
-                        alert("Could not detect location automatically. Please search for your address manually.");
+                        setGpsSource('denied');
                     }
                 })
-                .catch(() => alert("Could not detect location automatically. Please search for your address manually."))
+                .catch(() => setGpsSource('denied'))
                 .finally(() => setIsFetchingGPS(false));
         };
 
         if (!navigator.geolocation) {
-            fetchIPLocation();
+            onIpFallback();
             return;
         }
-        
+
         navigator.geolocation.getCurrentPosition(
             (pos) => {
                 const lat = pos.coords.latitude;
                 const lng = pos.coords.longitude;
                 setMarker({ lat, lng });
                 setCenter({ lat, lng });
+                setGpsSource('gps');
                 reverseGeocode(lat, lng);
                 setIsFetchingGPS(false);
             },
-            () => fetchIPLocation(),
-            { enableHighAccuracy: true, timeout: 8000 }
+            () => onIpFallback(),
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
         );
     };
 
@@ -177,6 +181,7 @@ export default function LocationPicker({ location, onLocationChange }) {
     // ── Clear location ─────────────────────────────────────────────────────
     const handleClear = () => {
         setMarker(null);
+        setGpsSource(null);
         onLocationChange(null);
     };
 
@@ -303,6 +308,25 @@ export default function LocationPicker({ location, onLocationChange }) {
             </GoogleMap>
 
             {/* ── Address info bar ── */}
+            {gpsSource === 'ip' && !location && (
+                <div className="animate-fade-in" style={{
+                    padding: '0.6rem 0.9rem', background: 'rgba(245,158,11,0.08)',
+                    border: '1px solid rgba(245,158,11,0.3)', borderRadius: 8,
+                    fontSize: '0.8rem', color: '#b45309',
+                }}>
+                    ⚠️ GPS access was blocked — map centred on approximate city area.
+                    <strong> Click your exact incident location on the map.</strong>
+                </div>
+            )}
+            {gpsSource === 'denied' && !location && (
+                <div className="animate-fade-in" style={{
+                    padding: '0.6rem 0.9rem', background: 'rgba(239,68,68,0.06)',
+                    border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8,
+                    fontSize: '0.8rem', color: '#dc2626',
+                }}>
+                    ✕ Could not detect location. Please search for your address or click on the map.
+                </div>
+            )}
             {location ? (
                 <div
                     className="animate-fade-in"
@@ -330,16 +354,16 @@ export default function LocationPicker({ location, onLocationChange }) {
                     </div>
                     <span style={{
                         padding: '0.25rem 0.65rem',
-                        background: 'rgba(16,185,129,0.12)',
-                        color: '#10b981',
+                        background: gpsSource === 'gps' ? 'rgba(16,185,129,0.12)' : 'rgba(2,132,199,0.12)',
+                        color: gpsSource === 'gps' ? '#10b981' : '#0284c7',
                         borderRadius: 100,
                         fontSize: '0.72rem', fontWeight: 700, flexShrink: 0,
                     }}>
-                        GPS ✓
+                        {gpsSource === 'gps' ? 'GPS ✓' : 'Pinned ✓'}
                     </span>
                 </div>
             ) : (
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textAlign: 'center', margin: 0 }}>
+                !gpsSource && <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textAlign: 'center', margin: 0 }}>
                     📍 Click on the map · drag the pin · search · or tap
                     <strong style={{ color: '#4285F4' }}> Auto GPS</strong>
                 </p>
